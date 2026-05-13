@@ -306,6 +306,9 @@ export function createMockAdapter(
     sendFile: REJECT_NOT_MOCKED('sendFile') as (
       args: Parameters<PrivchatClientAdapter['sendFile']>[0],
     ) => Promise<SendTextOperationResult>,
+    sendVideo: REJECT_NOT_MOCKED('sendVideo') as (
+      args: Parameters<PrivchatClientAdapter['sendVideo']>[0],
+    ) => Promise<SendTextOperationResult>,
 
     // ---- R3.6 reactions ----
     addReaction: REJECT_NOT_MOCKED('addReaction') as (

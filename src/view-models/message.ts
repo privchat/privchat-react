@@ -123,11 +123,39 @@ export interface VideoMetadataVM {
   thumbnail_url?: string;
 }
 
+export interface StickerMetadataVM {
+  type: 'sticker';
+  sticker_id: string;
+  image_url: string;
+}
+
+export interface LocationMetadataVM {
+  type: 'location';
+  latitude: number;
+  longitude: number;
+}
+
+export interface LinkMetadataVM {
+  type: 'link';
+  url: string;
+  title?: string;
+  description?: string;
+  /** Resolved thumbnail URL when the wire payload carries a
+   *  `thumbnail_url` field (some senders pre-resolve). The opaque
+   *  `thumbnail_file_id` from the FlatBuffers schema isn't directly
+   *  consumable by the UI — surfacing it would force every renderer to
+   *  call `fileGetUrl`, so we only forward the URL form. */
+  thumbnail_url?: string;
+}
+
 export type MediaMetadataVM =
   | ImageMetadataVM
   | FileMetadataVM
   | VoiceMetadataVM
-  | VideoMetadataVM;
+  | VideoMetadataVM
+  | StickerMetadataVM
+  | LocationMetadataVM
+  | LinkMetadataVM;
 
 /**
  * Project a cache MessageRecord into a UI ViewModel.
@@ -246,7 +274,10 @@ function decodeMediaMetadata(
     contentType !== 'image' &&
     contentType !== 'file' &&
     contentType !== 'voice' &&
-    contentType !== 'video'
+    contentType !== 'video' &&
+    contentType !== 'sticker' &&
+    contentType !== 'location' &&
+    contentType !== 'link'
   ) {
     return undefined;
   }
@@ -304,6 +335,44 @@ function decodeMediaMetadata(
         thumbnail_url:
           typeof m.thumbnail_url === 'string' ? m.thumbnail_url : undefined,
       };
+    case 'sticker': {
+      // Sticker payloads carry an opaque `sticker_id` (catalog reference)
+      // plus an already-resolved `image_url`. The UI only needs the URL
+      // to render — `sticker_id` is forwarded for analytics / future
+      // catalog lookups.
+      const stickerId = m.sticker_id;
+      const imageUrl = m.image_url;
+      if (typeof stickerId !== 'string' || typeof imageUrl !== 'string') {
+        return undefined;
+      }
+      return {
+        type: 'sticker',
+        sticker_id: stickerId,
+        image_url: imageUrl,
+      };
+    }
+    case 'location':
+      if (typeof m.latitude !== 'number' || typeof m.longitude !== 'number') {
+        return undefined;
+      }
+      return {
+        type: 'location',
+        latitude: m.latitude,
+        longitude: m.longitude,
+      };
+    case 'link': {
+      const url = m.url;
+      if (typeof url !== 'string' || url === '') return undefined;
+      return {
+        type: 'link',
+        url,
+        title: typeof m.title === 'string' ? m.title : undefined,
+        description:
+          typeof m.description === 'string' ? m.description : undefined,
+        thumbnail_url:
+          typeof m.thumbnail_url === 'string' ? m.thumbnail_url : undefined,
+      };
+    }
   }
   return undefined;
 }

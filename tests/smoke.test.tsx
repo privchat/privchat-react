@@ -226,6 +226,9 @@ class MockAdapter implements PrivchatClientAdapter {
   async sendFile(): Promise<SendTextOperationResult> {
     throw new Error('not used in smoke');
   }
+  async sendVideo(): Promise<SendTextOperationResult> {
+    throw new Error('not used in this test');
+  }
   async addReaction() {
     return undefined;
   }

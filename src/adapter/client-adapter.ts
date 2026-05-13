@@ -408,6 +408,25 @@ export interface PrivchatClientAdapter {
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
   }): Promise<SendTextOperationResult>;
 
+  /** End-to-end video upload + send. `width`/`height`/`duration` are
+   *  the caller's best-effort hints; the upload-response values win
+   *  if the server probed the file. No poster-frame generation —
+   *  receivers render the player chrome without a thumbnail unless
+   *  the sender pre-computed one. */
+  sendVideo(args: {
+    channel_id: string;
+    channel_type: number;
+    file: Blob;
+    filename: string;
+    mime_type: string;
+    width: number;
+    height: number;
+    duration: number;
+    thumbnail_url?: string;
+    caption?: string;
+    onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
+  }): Promise<SendTextOperationResult>;
+
   // ----- Reactions (R3.6) -----
 
   /** Add an emoji reaction to a server-acked message. Idempotent at

@@ -34,6 +34,27 @@ export interface SendFileArgs {
   onProgress?: (event: UploadProgressEvent) => void;
 }
 
+export interface SendVideoArgs {
+  channel_id: string;
+  channel_type: number;
+  file: Blob;
+  filename: string;
+  mime_type: string;
+  /** Best-effort dimensions; the upload response's probed dims win if
+   *  the server supplied them. */
+  width: number;
+  height: number;
+  /** Duration in seconds. The Web client typically reads this from the
+   *  `<video>` element's `loadedmetadata` event before send. */
+  duration: number;
+  /** Optional pre-resolved poster URL. The Web client does NOT generate
+   *  one (would require decoding + drawing a canvas frame pre-send) —
+   *  receivers render without a poster when this is absent. */
+  thumbnail_url?: string;
+  caption?: string;
+  onProgress?: (event: UploadProgressEvent) => void;
+}
+
 export function useSendImage(): (
   args: SendImageArgs,
 ) => Promise<SendTextOperationResult> {
@@ -46,4 +67,11 @@ export function useSendFile(): (
 ) => Promise<SendTextOperationResult> {
   const adapter = usePrivchatClient();
   return useCallback((args) => adapter.sendFile(args), [adapter]);
+}
+
+export function useSendVideo(): (
+  args: SendVideoArgs,
+) => Promise<SendTextOperationResult> {
+  const adapter = usePrivchatClient();
+  return useCallback((args) => adapter.sendVideo(args), [adapter]);
 }

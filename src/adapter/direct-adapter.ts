@@ -9,6 +9,7 @@
 import {
   buildSendFileInput,
   buildSendImageInput,
+  buildSendVideoInput,
   uploadFileViaToken,
 } from '@privchat/sdk';
 import type {
@@ -394,6 +395,52 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
           filename: args.filename,
           mime_type: args.mime_type,
           size: result.file_size,
+        },
+      }),
+    );
+  }
+
+  async sendVideo(args: {
+    channel_id: string;
+    channel_type: number;
+    file: Blob;
+    filename: string;
+    mime_type: string;
+    width: number;
+    height: number;
+    duration: number;
+    thumbnail_url?: string;
+    caption?: string;
+    onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
+  }): Promise<SendTextOperationResult> {
+    const fromUid = this.client.sessionSnapshot().user_id;
+    if (fromUid === undefined) throw new Error('not authenticated');
+    // Use the same `uploadOneFile` plumbing as image/file (the
+    // upload-token API is content-agnostic; `file_type` is the hint).
+    const result = await uploadOneFile(
+      this.client,
+      args.file,
+      args.filename,
+      args.mime_type,
+      'video',
+      args.onProgress,
+    );
+    return this.client.sendTextMessage(
+      buildSendVideoInput({
+        channel_id: args.channel_id,
+        channel_type: args.channel_type,
+        from_uid: fromUid,
+        caption: args.caption,
+        metadata: {
+          file_id: String(result.file_id),
+          url: result.file_url,
+          // Prefer the server-probed dimensions when available; the
+          // caller's args are best-effort hints derived from the
+          // `<video>` metadata event, which can lag a slow load.
+          width: result.width ?? args.width,
+          height: result.height ?? args.height,
+          duration: args.duration,
+          thumbnail_url: args.thumbnail_url,
         },
       }),
     );

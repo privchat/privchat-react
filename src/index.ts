@@ -98,6 +98,7 @@ export { useGroupOps, type GroupOps } from './hooks/use-group-ops.js';
 export {
   useSendFile,
   useSendImage,
+  useSendVideo,
   type SendFileArgs,
   type SendImageArgs,
 } from './hooks/use-send-media.js';
@@ -120,8 +121,11 @@ export {
   type ContentTypeName,
   type FileMetadataVM,
   type ImageMetadataVM,
+  type LinkMetadataVM,
+  type LocationMetadataVM,
   type MediaMetadataVM,
   type MessageItemVM,
+  type StickerMetadataVM,
   type VideoMetadataVM,
   type VoiceMetadataVM,
 } from './view-models/message.js';
