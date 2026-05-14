@@ -6,7 +6,11 @@
 import { useCallback, useMemo } from 'react';
 import type {
   GroupMemberListResponse,
+  GroupMuteAllResponse,
   GroupRoleSetResponse,
+  GroupSettingsGetResponse,
+  GroupSettingsPatch,
+  GroupSettingsUpdateResponse,
   GroupTransferOwnerResponse,
 } from '@privchat/sdk';
 import { usePrivchatClient } from './use-privchat-client.js';
@@ -37,6 +41,18 @@ export interface GroupOps {
     groupId: string,
     newOwnerId: string,
   ) => Promise<GroupTransferOwnerResponse>;
+  /** Read the group's mutable settings. Member-or-above can call. */
+  getSettings: (groupId: string) => Promise<GroupSettingsGetResponse>;
+  /** Apply a partial settings patch. Owner-only per spec — server
+   *  rejects admin / member callers. Pass `''` to clear a string
+   *  field; omit fields to leave them unchanged. */
+  updateSettings: (
+    groupId: string,
+    settings: GroupSettingsPatch,
+  ) => Promise<GroupSettingsUpdateResponse>;
+  /** Toggle whole-group mute. Owner-only. Goes through the dedicated
+   *  `group/settings/mute_all` route. */
+  muteAll: (groupId: string, muted: boolean) => Promise<GroupMuteAllResponse>;
 }
 
 export function useGroupOps(): GroupOps {
@@ -80,6 +96,19 @@ export function useGroupOps(): GroupOps {
       adapter.transferGroupOwner(groupId, newOwnerId),
     [adapter],
   );
+  const getSettings = useCallback(
+    (groupId: string) => adapter.getGroupSettings(groupId),
+    [adapter],
+  );
+  const updateSettings = useCallback(
+    (groupId: string, settings: GroupSettingsPatch) =>
+      adapter.updateGroupSettings(groupId, settings),
+    [adapter],
+  );
+  const muteAll = useCallback(
+    (groupId: string, muted: boolean) => adapter.muteGroupAll(groupId, muted),
+    [adapter],
+  );
   return useMemo(
     () => ({
       listMembers,
@@ -90,6 +119,9 @@ export function useGroupOps(): GroupOps {
       unmuteMember,
       setMemberRole,
       transferOwner,
+      getSettings,
+      updateSettings,
+      muteAll,
     }),
     [
       listMembers,
@@ -100,6 +132,9 @@ export function useGroupOps(): GroupOps {
       unmuteMember,
       setMemberRole,
       transferOwner,
+      getSettings,
+      updateSettings,
+      muteAll,
     ],
   );
 }

@@ -449,6 +449,32 @@ export interface PrivchatClientAdapter {
     newOwnerId: string,
   ): Promise<import('@privchat/sdk').GroupTransferOwnerResponse>;
 
+  // ----- Group settings -----
+
+  /** Read the mutable group settings (description / announcement /
+   *  approval flags / mute-all / member limit). Server gates on
+   *  membership; non-members get an error. */
+  getGroupSettings(
+    groupId: string,
+  ): Promise<import('@privchat/sdk').GroupSettingsGetResponse>;
+
+  /** Apply a partial patch to the group settings. Owner-only per
+   *  spec. The adapter fills `operator_id` from the current session.
+   *  Pass `''` to clear a string field; omit fields to leave them
+   *  unchanged. */
+  updateGroupSettings(
+    groupId: string,
+    settings: import('@privchat/sdk').GroupSettingsPatch,
+  ): Promise<import('@privchat/sdk').GroupSettingsUpdateResponse>;
+
+  /** Toggle whole-group mute. Owner-only. Goes through the dedicated
+   *  `group/settings/mute_all` route (the server emits a distinct
+   *  notification for it). */
+  muteGroupAll(
+    groupId: string,
+    muted: boolean,
+  ): Promise<import('@privchat/sdk').GroupMuteAllResponse>;
+
   // ----- Reactions (R3.6) -----
 
   /** Add an emoji reaction to a server-acked message. Idempotent at

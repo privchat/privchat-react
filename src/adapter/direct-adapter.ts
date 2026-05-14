@@ -339,6 +339,28 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     );
   }
 
+  getGroupSettings(
+    groupId: string,
+  ): Promise<import('@privchat/sdk').GroupSettingsGetResponse> {
+    return this.client.groupSettingsGet(Number(groupId));
+  }
+
+  updateGroupSettings(
+    groupId: string,
+    settings: import('@privchat/sdk').GroupSettingsPatch,
+  ): Promise<import('@privchat/sdk').GroupSettingsUpdateResponse> {
+    const operator = this.requireAuthenticatedUid('updateGroupSettings');
+    return this.client.groupSettingsUpdate(Number(groupId), operator, settings);
+  }
+
+  muteGroupAll(
+    groupId: string,
+    muted: boolean,
+  ): Promise<import('@privchat/sdk').GroupMuteAllResponse> {
+    const operator = this.requireAuthenticatedUid('muteGroupAll');
+    return this.client.groupMuteAll(Number(groupId), operator, muted);
+  }
+
   /** Resolve the current session uid as a `number` for wire ops that
    *  require `operator_id` / `current_owner_id`. Throws when there's
    *  no authenticated session — these RPCs cannot be issued

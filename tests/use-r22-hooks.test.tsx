@@ -254,6 +254,25 @@ class MockAdapter implements PrivchatClientAdapter {
   async transferGroupOwner() {
     return { group_id: 0, new_owner_id: 0 };
   }
+  async getGroupSettings() {
+    return {
+      group_id: 0,
+      settings: {
+        join_need_approval: false,
+        member_can_invite: false,
+        all_muted: false,
+        max_members: 0,
+        created_at: 0,
+        updated_at: 0,
+      },
+    };
+  }
+  async updateGroupSettings() {
+    return { success: true, group_id: '0', message: 'ok', updated_count: 0, updated_at: 0 };
+  }
+  async muteGroupAll() {
+    return { success: true, group_id: '0', all_muted: false, message: 'ok', operator_id: '0', updated_at: 0 };
+  }
   async sendImage(): Promise<SendTextOperationResult> {
     throw new Error('not used in this test');
   }

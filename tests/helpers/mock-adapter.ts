@@ -314,6 +314,11 @@ export function createMockAdapter(
     setGroupMemberRole: REJECT_NOT_MOCKED('setGroupMemberRole') as PrivchatClientAdapter['setGroupMemberRole'],
     transferGroupOwner: REJECT_NOT_MOCKED('transferGroupOwner') as PrivchatClientAdapter['transferGroupOwner'],
 
+    // ---- Group settings ----
+    getGroupSettings: REJECT_NOT_MOCKED('getGroupSettings') as PrivchatClientAdapter['getGroupSettings'],
+    updateGroupSettings: REJECT_NOT_MOCKED('updateGroupSettings') as PrivchatClientAdapter['updateGroupSettings'],
+    muteGroupAll: REJECT_NOT_MOCKED('muteGroupAll') as PrivchatClientAdapter['muteGroupAll'],
+
     // ---- R3.6 reactions ----
     addReaction: REJECT_NOT_MOCKED('addReaction') as (
       sid: string,

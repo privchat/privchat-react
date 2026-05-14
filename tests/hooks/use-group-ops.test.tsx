@@ -164,6 +164,76 @@ describe('useGroupOps', () => {
     expect(transfer).toHaveBeenCalledWith('900', '202');
   });
 
+  it('getSettings forwards groupId', async () => {
+    const get = vi.fn().mockResolvedValue({
+      group_id: 900,
+      settings: {
+        join_need_approval: false,
+        member_can_invite: true,
+        all_muted: false,
+        max_members: 500,
+        description: 'foo',
+        announcement: 'bar',
+        created_at: 1,
+        updated_at: 2,
+      },
+    });
+    const adapter = createMockAdapter({ getGroupSettings: get });
+    const { result } = renderHookWithAdapter(() => useGroupOps(), adapter);
+
+    await act(async () => {
+      await result.current.getSettings('900');
+    });
+    expect(get).toHaveBeenCalledWith('900');
+  });
+
+  it('updateSettings forwards (groupId, patch)', async () => {
+    const update = vi.fn().mockResolvedValue({
+      success: true,
+      group_id: '900',
+      message: 'ok',
+      updated_count: 1,
+      updated_at: 0,
+    });
+    const adapter = createMockAdapter({ updateGroupSettings: update });
+    const { result } = renderHookWithAdapter(() => useGroupOps(), adapter);
+
+    await act(async () => {
+      await result.current.updateSettings('900', { description: 'foo' });
+    });
+    await act(async () => {
+      await result.current.updateSettings('900', { announcement: '' });
+    });
+    expect(update.mock.calls).toEqual([
+      ['900', { description: 'foo' }],
+      ['900', { announcement: '' }],
+    ]);
+  });
+
+  it('muteAll forwards (groupId, muted)', async () => {
+    const mute = vi.fn().mockResolvedValue({
+      success: true,
+      group_id: '900',
+      all_muted: true,
+      message: 'ok',
+      operator_id: '1',
+      updated_at: 0,
+    });
+    const adapter = createMockAdapter({ muteGroupAll: mute });
+    const { result } = renderHookWithAdapter(() => useGroupOps(), adapter);
+
+    await act(async () => {
+      await result.current.muteAll('900', true);
+    });
+    await act(async () => {
+      await result.current.muteAll('900', false);
+    });
+    expect(mute.mock.calls).toEqual([
+      ['900', true],
+      ['900', false],
+    ]);
+  });
+
   it('returns a referentially stable ops object across re-renders', () => {
     const adapter = createMockAdapter({
       listGroupMembers: vi.fn().mockResolvedValue(emptyMembers),
@@ -180,6 +250,32 @@ describe('useGroupOps', () => {
       transferGroupOwner: vi.fn().mockResolvedValue({
         group_id: 0,
         new_owner_id: 0,
+      }),
+      getGroupSettings: vi.fn().mockResolvedValue({
+        group_id: 0,
+        settings: {
+          join_need_approval: false,
+          member_can_invite: false,
+          all_muted: false,
+          max_members: 0,
+          created_at: 0,
+          updated_at: 0,
+        },
+      }),
+      updateGroupSettings: vi.fn().mockResolvedValue({
+        success: true,
+        group_id: '0',
+        message: '',
+        updated_count: 0,
+        updated_at: 0,
+      }),
+      muteGroupAll: vi.fn().mockResolvedValue({
+        success: true,
+        group_id: '0',
+        all_muted: false,
+        message: '',
+        operator_id: '0',
+        updated_at: 0,
       }),
     });
     const { result, rerender } = renderHookWithAdapter(
@@ -202,6 +298,9 @@ describe('useGroupOps', () => {
       unmuteGroupMember: vi.fn().mockRejectedValue(err),
       setGroupMemberRole: vi.fn().mockRejectedValue(err),
       transferGroupOwner: vi.fn().mockRejectedValue(err),
+      getGroupSettings: vi.fn().mockRejectedValue(err),
+      updateGroupSettings: vi.fn().mockRejectedValue(err),
+      muteGroupAll: vi.fn().mockRejectedValue(err),
     });
     const { result } = renderHookWithAdapter(() => useGroupOps(), adapter);
 
@@ -215,5 +314,10 @@ describe('useGroupOps', () => {
       err,
     );
     await expect(result.current.transferOwner('1', '2')).rejects.toBe(err);
+    await expect(result.current.getSettings('1')).rejects.toBe(err);
+    await expect(
+      result.current.updateSettings('1', { description: 'x' }),
+    ).rejects.toBe(err);
+    await expect(result.current.muteAll('1', true)).rejects.toBe(err);
   });
 });
