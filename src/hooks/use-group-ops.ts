@@ -36,7 +36,8 @@ export interface GroupOps {
     role: 'admin' | 'member',
   ) => Promise<GroupRoleSetResponse>;
   /** Transfer ownership to another existing group member. The caller
-   *  is automatically downgraded to admin server-side. */
+   *  becomes a regular member server-side (NOT admin — see server
+   *  `rpc/group/role/transfer_owner.rs:99-101`). */
   transferOwner: (
     groupId: string,
     newOwnerId: string,

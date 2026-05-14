@@ -442,8 +442,9 @@ export interface PrivchatClientAdapter {
 
   /** Transfer ownership to another existing member. Server expects
    *  the wire field `current_owner_id` to match both the session uid
-   *  AND the group's current owner. Outgoing owner is downgraded to
-   *  admin in the same transaction (server-side invariant). */
+   *  AND the group's current owner. Outgoing owner becomes a regular
+   *  member (server-side: `MemberRole::Member`, NOT admin — see
+   *  `privchat-server/src/rpc/group/role/transfer_owner.rs`). */
   transferGroupOwner(
     groupId: string,
     newOwnerId: string,
