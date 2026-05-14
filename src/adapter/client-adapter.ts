@@ -427,6 +427,28 @@ export interface PrivchatClientAdapter {
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
   }): Promise<SendTextOperationResult>;
 
+  // ----- Group role management -----
+
+  /** Promote a member to admin or demote them to member. The wire
+   *  shape requires the operator's user id for the permission check;
+   *  adapters fill that from the current session. Server only accepts
+   *  this call from the group owner. Role `'owner'` is NOT settable
+   *  through this RPC — use `transferGroupOwner` for ownership moves. */
+  setGroupMemberRole(
+    groupId: string,
+    userId: string,
+    role: 'admin' | 'member',
+  ): Promise<import('@privchat/sdk').GroupRoleSetResponse>;
+
+  /** Transfer ownership to another existing member. Server expects
+   *  the wire field `current_owner_id` to match both the session uid
+   *  AND the group's current owner. Outgoing owner is downgraded to
+   *  admin in the same transaction (server-side invariant). */
+  transferGroupOwner(
+    groupId: string,
+    newOwnerId: string,
+  ): Promise<import('@privchat/sdk').GroupTransferOwnerResponse>;
+
   // ----- Reactions (R3.6) -----
 
   /** Add an emoji reaction to a server-acked message. Idempotent at

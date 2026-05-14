@@ -4,7 +4,11 @@
 // shape as useChannelOps — grouped to avoid hook-per-RPC ceremony.
 
 import { useCallback, useMemo } from 'react';
-import type { GroupMemberListResponse } from '@privchat/sdk';
+import type {
+  GroupMemberListResponse,
+  GroupRoleSetResponse,
+  GroupTransferOwnerResponse,
+} from '@privchat/sdk';
 import { usePrivchatClient } from './use-privchat-client.js';
 
 export interface GroupOps {
@@ -19,6 +23,20 @@ export interface GroupOps {
     muteDuration: number,
   ) => Promise<unknown>;
   unmuteMember: (groupId: string, userId: string) => Promise<unknown>;
+  /** Promote a member to admin (`'admin'`) or demote them
+   *  (`'member'`). Owner-only. Server rejects with a permission error
+   *  when the caller isn't the owner. */
+  setMemberRole: (
+    groupId: string,
+    userId: string,
+    role: 'admin' | 'member',
+  ) => Promise<GroupRoleSetResponse>;
+  /** Transfer ownership to another existing group member. The caller
+   *  is automatically downgraded to admin server-side. */
+  transferOwner: (
+    groupId: string,
+    newOwnerId: string,
+  ) => Promise<GroupTransferOwnerResponse>;
 }
 
 export function useGroupOps(): GroupOps {
@@ -52,6 +70,16 @@ export function useGroupOps(): GroupOps {
       adapter.unmuteGroupMember(groupId, userId),
     [adapter],
   );
+  const setMemberRole = useCallback(
+    (groupId: string, userId: string, role: 'admin' | 'member') =>
+      adapter.setGroupMemberRole(groupId, userId, role),
+    [adapter],
+  );
+  const transferOwner = useCallback(
+    (groupId: string, newOwnerId: string) =>
+      adapter.transferGroupOwner(groupId, newOwnerId),
+    [adapter],
+  );
   return useMemo(
     () => ({
       listMembers,
@@ -60,7 +88,18 @@ export function useGroupOps(): GroupOps {
       removeMember,
       muteMember,
       unmuteMember,
+      setMemberRole,
+      transferOwner,
     }),
-    [listMembers, leaveGroup, addMember, removeMember, muteMember, unmuteMember],
+    [
+      listMembers,
+      leaveGroup,
+      addMember,
+      removeMember,
+      muteMember,
+      unmuteMember,
+      setMemberRole,
+      transferOwner,
+    ],
   );
 }

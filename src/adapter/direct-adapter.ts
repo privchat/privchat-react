@@ -313,6 +313,45 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     return this.client.groupMemberUnmute(Number(groupId), Number(userId));
   }
 
+  setGroupMemberRole(
+    groupId: string,
+    userId: string,
+    role: 'admin' | 'member',
+  ): Promise<import('@privchat/sdk').GroupRoleSetResponse> {
+    const operator = this.requireAuthenticatedUid('setGroupMemberRole');
+    return this.client.groupRoleSet(
+      Number(groupId),
+      operator,
+      Number(userId),
+      role,
+    );
+  }
+
+  transferGroupOwner(
+    groupId: string,
+    newOwnerId: string,
+  ): Promise<import('@privchat/sdk').GroupTransferOwnerResponse> {
+    const currentOwner = this.requireAuthenticatedUid('transferGroupOwner');
+    return this.client.groupTransferOwner(
+      Number(groupId),
+      currentOwner,
+      Number(newOwnerId),
+    );
+  }
+
+  /** Resolve the current session uid as a `number` for wire ops that
+   *  require `operator_id` / `current_owner_id`. Throws when there's
+   *  no authenticated session — these RPCs cannot be issued
+   *  anonymously, so failing loud at the adapter beats a confusing
+   *  401-style server reject downstream. */
+  private requireAuthenticatedUid(op: string): number {
+    const uid = this.client.sessionSnapshot().user_id;
+    if (uid === undefined) {
+      throw new Error(`${op}: not authenticated`);
+    }
+    return Number(uid);
+  }
+
   observeOutbox(
     cb: (entries: import('@privchat/sdk').OutboxEntry[]) => void,
   ): Unsubscribe {

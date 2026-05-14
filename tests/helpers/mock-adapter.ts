@@ -310,6 +310,10 @@ export function createMockAdapter(
       args: Parameters<PrivchatClientAdapter['sendVideo']>[0],
     ) => Promise<SendTextOperationResult>,
 
+    // ---- Group role / transfer ----
+    setGroupMemberRole: REJECT_NOT_MOCKED('setGroupMemberRole') as PrivchatClientAdapter['setGroupMemberRole'],
+    transferGroupOwner: REJECT_NOT_MOCKED('transferGroupOwner') as PrivchatClientAdapter['transferGroupOwner'],
+
     // ---- R3.6 reactions ----
     addReaction: REJECT_NOT_MOCKED('addReaction') as (
       sid: string,

@@ -129,6 +129,41 @@ describe('useGroupOps', () => {
     expect(unmute).toHaveBeenCalledWith('900', '101');
   });
 
+  it('setMemberRole forwards (groupId, userId, role)', async () => {
+    const setRole = vi.fn().mockResolvedValue({
+      group_id: 900,
+      user_id: 101,
+      role: 'admin',
+    });
+    const adapter = createMockAdapter({ setGroupMemberRole: setRole });
+    const { result } = renderHookWithAdapter(() => useGroupOps(), adapter);
+
+    await act(async () => {
+      await result.current.setMemberRole('900', '101', 'admin');
+    });
+    await act(async () => {
+      await result.current.setMemberRole('900', '101', 'member');
+    });
+    expect(setRole.mock.calls).toEqual([
+      ['900', '101', 'admin'],
+      ['900', '101', 'member'],
+    ]);
+  });
+
+  it('transferOwner forwards (groupId, newOwnerId)', async () => {
+    const transfer = vi.fn().mockResolvedValue({
+      group_id: 900,
+      new_owner_id: 202,
+    });
+    const adapter = createMockAdapter({ transferGroupOwner: transfer });
+    const { result } = renderHookWithAdapter(() => useGroupOps(), adapter);
+
+    await act(async () => {
+      await result.current.transferOwner('900', '202');
+    });
+    expect(transfer).toHaveBeenCalledWith('900', '202');
+  });
+
   it('returns a referentially stable ops object across re-renders', () => {
     const adapter = createMockAdapter({
       listGroupMembers: vi.fn().mockResolvedValue(emptyMembers),
@@ -137,6 +172,15 @@ describe('useGroupOps', () => {
       removeGroupMember: vi.fn().mockResolvedValue(true),
       muteGroupMember: vi.fn().mockResolvedValue(true),
       unmuteGroupMember: vi.fn().mockResolvedValue(true),
+      setGroupMemberRole: vi.fn().mockResolvedValue({
+        group_id: 0,
+        user_id: 0,
+        role: 'admin',
+      }),
+      transferGroupOwner: vi.fn().mockResolvedValue({
+        group_id: 0,
+        new_owner_id: 0,
+      }),
     });
     const { result, rerender } = renderHookWithAdapter(
       () => useGroupOps(),
@@ -156,6 +200,8 @@ describe('useGroupOps', () => {
       removeGroupMember: vi.fn().mockRejectedValue(err),
       muteGroupMember: vi.fn().mockRejectedValue(err),
       unmuteGroupMember: vi.fn().mockRejectedValue(err),
+      setGroupMemberRole: vi.fn().mockRejectedValue(err),
+      transferGroupOwner: vi.fn().mockRejectedValue(err),
     });
     const { result } = renderHookWithAdapter(() => useGroupOps(), adapter);
 
@@ -165,5 +211,9 @@ describe('useGroupOps', () => {
     await expect(result.current.removeMember('1', '2')).rejects.toBe(err);
     await expect(result.current.muteMember('1', '2', 0)).rejects.toBe(err);
     await expect(result.current.unmuteMember('1', '2')).rejects.toBe(err);
+    await expect(result.current.setMemberRole('1', '2', 'admin')).rejects.toBe(
+      err,
+    );
+    await expect(result.current.transferOwner('1', '2')).rejects.toBe(err);
   });
 });
