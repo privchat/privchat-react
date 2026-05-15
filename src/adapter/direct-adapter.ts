@@ -529,6 +529,71 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
       mime_type: resp.mime_type,
     };
   }
+
+  // ----- QR Code v1.3 -----
+
+  async userQrcodeGet() {
+    const resp = await this.client.userQrcodeGet();
+    return {
+      qr_key: resp.qr_key,
+      qr_code: resp.qr_code,
+      user_id: String(resp.user_id),
+    };
+  }
+
+  async userQrcodeRefresh() {
+    const resp = await this.client.userQrcodeRefresh();
+    return {
+      old_qr_key: resp.old_qr_key,
+      new_qr_key: resp.new_qr_key,
+      qr_code: resp.qr_code,
+      user_id: String(resp.user_id),
+    };
+  }
+
+  async userQrcodeResolve(qrKey: string) {
+    const resp = await this.client.userQrcodeResolve(qrKey);
+    return {
+      user_id: String(resp.user_id),
+      username: resp.username,
+      display_name: resp.display_name,
+      avatar_url: resp.avatar_url,
+      user_type: resp.user_type,
+      is_friend: resp.is_friend,
+      is_self: resp.is_self,
+    };
+  }
+
+  async groupQrcodeGet(groupId: string) {
+    const resp = await this.client.groupQrcodeGet(Number(groupId));
+    return {
+      qr_key: resp.qr_key,
+      qr_code: resp.qr_code,
+      group_id: String(resp.group_id),
+    };
+  }
+
+  async groupQrcodeRefresh(groupId: string) {
+    const resp = await this.client.groupQrcodeRefresh(Number(groupId));
+    return {
+      old_qr_key: resp.old_qr_key,
+      new_qr_key: resp.new_qr_key,
+      qr_code: resp.qr_code,
+      group_id: String(resp.group_id),
+    };
+  }
+
+  async groupJoinByQrcode(qrKey: string, message?: string) {
+    const resp = await this.client.groupJoinByQrcode(qrKey, message);
+    return {
+      status: resp.status,
+      group_id: String(resp.group_id),
+      request_id: resp.request_id,
+      message: resp.message,
+      user_id: resp.user_id !== undefined ? String(resp.user_id) : undefined,
+      joined_at: resp.joined_at,
+    };
+  }
 }
 
 /** Two-step upload: request token → multipart POST. Pulled out of the

@@ -505,4 +505,67 @@ export interface PrivchatClientAdapter {
     file_size: number;
     mime_type: string;
   }>;
+
+  // ----- QR Code v1.3 (per QR_CODE_SPEC v1.3) -----
+
+  /** Read the current user's permanent qr_key + fully-built scan URL.
+   *  Shape: `https://<host>/privchat:protocol/user/get?qrkey=<qr_key>`. */
+  userQrcodeGet(): Promise<{
+    qr_key: string;
+    qr_code: string;
+    user_id: string;
+  }>;
+
+  /** Rotate the current user's qr_key. Old key becomes immediately
+   *  unresolvable. Anti-spam tool — there's no time-based expiry. */
+  userQrcodeRefresh(): Promise<{
+    old_qr_key: string;
+    new_qr_key: string;
+    qr_code: string;
+    user_id: string;
+  }>;
+
+  /** Resolve a peer's qr_key (scanned from their QR) to the minimum
+   *  user card the caller can act on (view profile / add friend).
+   *  Server does NOT return qr_key in response — discourage secondary
+   *  spreading. */
+  userQrcodeResolve(qrKey: string): Promise<{
+    user_id: string;
+    username: string;
+    display_name?: string;
+    avatar_url?: string;
+    user_type: number;
+    is_friend: boolean;
+    is_self: boolean;
+  }>;
+
+  /** Read a group's permanent qr_key + URL. Any member of the group
+   *  can read. URL targets the `join` action. */
+  groupQrcodeGet(groupId: string): Promise<{
+    qr_key: string;
+    qr_code: string;
+    group_id: string;
+  }>;
+
+  /** Rotate the group's qr_key. Owner/Admin only — server enforces. */
+  groupQrcodeRefresh(groupId: string): Promise<{
+    old_qr_key: string;
+    new_qr_key: string;
+    qr_code: string;
+    group_id: string;
+  }>;
+
+  /** Submit a join-by-QR request for the group whose qr_key was
+   *  scanned. Server reverse-looks-up the group_id and runs the same
+   *  membership/capacity/approval flow as `member/invite`. Response
+   *  `status` is `'joined'` (auto-admitted) or `'pending'` (queued
+   *  for owner/admin approval). */
+  groupJoinByQrcode(qrKey: string, message?: string): Promise<{
+    status: string;
+    group_id: string;
+    request_id?: string;
+    message?: string;
+    user_id?: string;
+    joined_at?: number;
+  }>;
 }

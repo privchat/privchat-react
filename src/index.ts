@@ -94,6 +94,16 @@ export { useChannelOps, type ChannelOps } from './hooks/use-channel-ops.js';
 // ----- Hooks (R3.4: group ops) -----
 export { useGroupOps, type GroupOps } from './hooks/use-group-ops.js';
 
+// ----- Hooks (QR Code v1.3) -----
+export {
+  useUserQrcode,
+  useGroupQrcode,
+  parsePrivchatLink,
+  type UserQrcodeOps,
+  type GroupQrcodeOps,
+  type PrivchatProtocolLink,
+} from './hooks/use-qrcode.js';
+
 // ----- Hooks (R3.5: media send) -----
 export {
   useSendFile,

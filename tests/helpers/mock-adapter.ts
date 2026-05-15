@@ -352,6 +352,52 @@ export function createMockAdapter(
       file_size: number;
       mime_type: string;
     }>,
+
+    // ---- QR Code v1.3 (default rejections; smoke tests don't exercise) ----
+    userQrcodeGet: REJECT_NOT_MOCKED('userQrcodeGet') as () => Promise<{
+      qr_key: string;
+      qr_code: string;
+      user_id: string;
+    }>,
+    userQrcodeRefresh: REJECT_NOT_MOCKED('userQrcodeRefresh') as () => Promise<{
+      old_qr_key: string;
+      new_qr_key: string;
+      qr_code: string;
+      user_id: string;
+    }>,
+    userQrcodeResolve: REJECT_NOT_MOCKED('userQrcodeResolve') as (
+      qrKey: string,
+    ) => Promise<{
+      user_id: string;
+      username: string;
+      display_name?: string;
+      avatar_url?: string;
+      user_type: number;
+      is_friend: boolean;
+      is_self: boolean;
+    }>,
+    groupQrcodeGet: REJECT_NOT_MOCKED('groupQrcodeGet') as (
+      gid: string,
+    ) => Promise<{ qr_key: string; qr_code: string; group_id: string }>,
+    groupQrcodeRefresh: REJECT_NOT_MOCKED('groupQrcodeRefresh') as (
+      gid: string,
+    ) => Promise<{
+      old_qr_key: string;
+      new_qr_key: string;
+      qr_code: string;
+      group_id: string;
+    }>,
+    groupJoinByQrcode: REJECT_NOT_MOCKED('groupJoinByQrcode') as (
+      qrKey: string,
+      message?: string,
+    ) => Promise<{
+      status: string;
+      group_id: string;
+      request_id?: string;
+      message?: string;
+      user_id?: string;
+      joined_at?: number;
+    }>,
   };
 
   return { ...base, ...overrides };
