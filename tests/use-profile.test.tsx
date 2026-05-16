@@ -288,19 +288,19 @@ class MockAdapter implements PrivchatClientAdapter {
     return { file_url: "", expires_at: 0, file_size: 0, mime_type: "" };
   }
   async userQrcodeGet() {
-    return { qr_key: "stub", qr_code: "https://stub/privchat:protocol/user/get?qrkey=stub", user_id: "self" };
+    return { qr_key: "stub", qr_code: "https://stub/privchat:protocol/user/get/stub", user_id: "self" };
   }
   async userQrcodeRefresh() {
-    return { old_qr_key: "old", new_qr_key: "new", qr_code: "https://stub/privchat:protocol/user/get?qrkey=new", user_id: "self" };
+    return { old_qr_key: "old", new_qr_key: "new", qr_code: "https://stub/privchat:protocol/user/get/new", user_id: "self" };
   }
   async userQrcodeResolve(_qrKey: string) {
     return { user_id: "0", username: "stub", user_type: 0, is_friend: false, is_self: false };
   }
   async groupQrcodeGet(groupId: string) {
-    return { qr_key: "stub", qr_code: `https://stub/privchat:protocol/group/join?qrkey=stub`, group_id: groupId };
+    return { qr_key: "stub", qr_code: `https://stub/privchat:protocol/group/join/stub`, group_id: groupId };
   }
   async groupQrcodeRefresh(groupId: string) {
-    return { old_qr_key: "old", new_qr_key: "new", qr_code: `https://stub/privchat:protocol/group/join?qrkey=new`, group_id: groupId };
+    return { old_qr_key: "old", new_qr_key: "new", qr_code: `https://stub/privchat:protocol/group/join/new`, group_id: groupId };
   }
   async groupJoinByQrcode(_qrKey: string, _message?: string) {
     return { status: "joined", group_id: "0" };

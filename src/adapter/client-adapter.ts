@@ -509,7 +509,7 @@ export interface PrivchatClientAdapter {
   // ----- QR Code v1.3 (per QR_CODE_SPEC v1.3) -----
 
   /** Read the current user's permanent qr_key + fully-built scan URL.
-   *  Shape: `https://<host>/privchat:protocol/user/get?qrkey=<qr_key>`. */
+   *  Shape (v1.4 path-only): `https://<host>/privchat:protocol/user/get/<qr_key>`. */
   userQrcodeGet(): Promise<{
     qr_key: string;
     qr_code: string;

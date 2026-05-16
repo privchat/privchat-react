@@ -108,11 +108,17 @@ export type PrivchatProtocolLink =
 const PROTOCOL_MARKER = 'privchat:protocol';
 
 /** Parse a raw string (URL, pasted text, scan result) into a sealed
- *  link variant. Rules (per spec):
+ *  link variant. Rules (per spec v1.4):
  *  1. Must parse as URL with `http`/`https` scheme.
- *  2. `pathSegments[0]` must equal `"privchat:protocol"`.
- *  3. `(segments[1], segments[2])` decides the action.
- *  4. Only `qrkey` query param is read; other params are ignored.
+ *  2. **Find the `"privchat:protocol"` marker anywhere in `pathSegments`**
+ *     (NOT just segment 0) — host may carry a sub-path prefix like
+ *     `https://example.com/app/privchat:protocol/...`. The marker MUST
+ *     be a full segment (not a substring).
+ *  3. The next 3 segments after the marker are
+ *     `<entity>/<action>/<qr_key>` (v1.4 path-only form).
+ *  4. For backward compat: if the qr_key path segment is missing, fall
+ *     back to `?qrkey=` query param (v1.3 form). Server URL builder
+ *     only emits v1.4 now, but v1.3 QR images may still be in circulation.
  *  5. Anything else returns `not-privchat` or `unsupported` — never throws. */
 export function parsePrivchatLink(raw: string): PrivchatProtocolLink {
   let url: URL;
@@ -125,20 +131,26 @@ export function parsePrivchatLink(raw: string): PrivchatProtocolLink {
     return { kind: 'not-privchat' };
   }
   const segments = url.pathname.split('/').filter(Boolean);
-  if (segments[0] !== PROTOCOL_MARKER) {
+  // Locate the marker — must be a full path segment, not a substring.
+  const markerIdx = segments.indexOf(PROTOCOL_MARKER);
+  if (markerIdx === -1) {
     return { kind: 'not-privchat' };
   }
-  if (segments.length < 3) {
+  const tail = segments.slice(markerIdx + 1);
+  if (tail.length < 2) {
     return {
       kind: 'unsupported',
-      entity: segments[1] ?? '',
+      entity: tail[0] ?? '',
       action: '',
       qrKey: url.searchParams.get('qrkey'),
     };
   }
-  const entity = segments[1] ?? '';
-  const action = segments[2] ?? '';
-  const qrKey = url.searchParams.get('qrkey') ?? '';
+  const entity = tail[0] ?? '';
+  const action = tail[1] ?? '';
+  // v1.4 path-only first; v1.3 ?qrkey= as fallback for in-flight QRs.
+  const pathKey = (tail[2] ?? '').trim();
+  const queryKey = (url.searchParams.get('qrkey') ?? '').trim();
+  const qrKey = pathKey !== '' ? pathKey : queryKey;
   if (entity === 'user' && action === 'get' && qrKey !== '') {
     return { kind: 'user-get', qrKey };
   }
