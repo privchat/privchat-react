@@ -5,6 +5,7 @@
 // and will be added here when a real UI consumes them.
 
 import type { ChannelRecord } from '@privchat/sdk';
+import type { ContentTypeName } from './message.js';
 
 export interface ConversationListItemVM {
   /** Stable React key. Composes both halves of the SDK's compound key. */
@@ -18,6 +19,11 @@ export interface ConversationListItemVM {
   title: string;
   unread_count: number;
   last_message_preview: string | undefined;
+  /** Canonical content type of the most-recent message. The list renders
+   *  `last_message_preview` verbatim for `text` (and as a fallback when
+   *  this is undefined — older cached rows), and a locale-specific
+   *  placeholder ("[图片]" / "[Image]") for every other type. */
+  last_message_content_type: ContentTypeName | undefined;
   /** Server wall-clock ms — also the sort key. */
   updated_at: number;
   /** Pinned to the top of the list. Server-side persistent (R6.c). */
@@ -38,6 +44,7 @@ export function projectChannelRecord(record: ChannelRecord): ConversationListIte
     title: record.title ?? defaultTitle(record),
     unread_count: record.unread_count,
     last_message_preview: record.last_message_preview,
+    last_message_content_type: record.last_message_type as ContentTypeName | undefined,
     updated_at: record.updated_at,
     pinned: record.pinned === true,
     muted: record.muted === true,
