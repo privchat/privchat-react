@@ -53,8 +53,9 @@ export interface MessageItemVM {
   revoked: boolean;
   /** Application content type (`'text' | 'image' | 'voice' | 'video' |
    *  'file' | 'system' | 'sticker' | 'contact_card' | 'location' |
-   *  'link' | 'forward'`). Decoded from `record.message_type` (a
-   *  decimal-string of the wire u32). Renderers switch on this. */
+   *  'link' | 'forward'`). Decoded from `record.message_type`, which is
+   *  either the wire u32 as a decimal-string (push/outbox) or the server
+   *  word form (history/sync). Renderers switch on this. */
   content_type: ContentTypeName;
   /** Parsed media metadata for image/voice/video/file rows. `undefined`
    *  for plain text. Caller should narrow on `content_type`. */
@@ -227,11 +228,42 @@ function decodeReplyTo(payload: Uint8Array): string | undefined {
   return undefined;
 }
 
-/** Map the wire `message_type` (decimal string of `ContentMessageType`)
- *  into a stable string discriminant the UI can switch on. Unknown
- *  values fall back to `'unknown'` so renderers can show a generic
- *  fallback bubble without crashing. */
+/** Word forms emitted by the server's JSON wire (`MessageType::as_str()`),
+ *  used by `message/history/get` and `sync/get_difference`. These are
+ *  the cache's canonical `message_type` representation per
+ *  `MessageRecord` (cache/types.ts). */
+const WORD_CONTENT_TYPES: ReadonlySet<ContentTypeName> = new Set([
+  'text',
+  'voice',
+  'image',
+  'video',
+  'file',
+  'system',
+  'sticker',
+  'contact_card',
+  'location',
+  'link',
+  'forward',
+]);
+
+/** Map a cache `MessageRecord.message_type` into a stable discriminant
+ *  the UI can switch on.
+ *
+ *  The field arrives in two equivalent representations depending on
+ *  which ingest path wrote the row:
+ *    - **word string** (`'text'`, `'image'`, …) — the server-JSON paths
+ *      (history / sync) store `MessageType::as_str()` verbatim.
+ *    - **decimal string** (`'0'`..`'10'`) — the FlatBuffers push / outbox
+ *      / local-echo paths store `String(wireTag)`.
+ *
+ *  Both are accepted so history/sync-loaded rows render identically to
+ *  live push rows (and so already-persisted IndexedDB rows in either
+ *  form keep working). Unrecognized values fall back to `'unknown'` so
+ *  renderers show a generic placeholder instead of crashing. */
 function decodeContentType(raw: string): ContentTypeName {
+  if (WORD_CONTENT_TYPES.has(raw as ContentTypeName)) {
+    return raw as ContentTypeName;
+  }
   switch (raw) {
     case '0':
       return 'text';
