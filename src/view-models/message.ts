@@ -7,7 +7,7 @@
 // already carries the display text for both inbound and locally-echoed rows.
 
 import type { MessageRecord, MessageStatus, OutboxStatus } from '@privchat/sdk';
-import { decodeContentTypeName, type ContentTypeName } from '@privchat/sdk';
+import { decodeContentTypeName, parseRpcJson, type ContentTypeName } from '@privchat/sdk';
 
 export interface MessageItemVM {
   /**
@@ -206,9 +206,13 @@ export function projectMessageRecord(
 function decodeReplyTo(payload: Uint8Array): string | undefined {
   if (payload.length === 0 || payload[0] !== 0x7b /* '{' */) return undefined;
   try {
-    const obj = JSON.parse(new TextDecoder().decode(payload)) as {
-      reply_to_message_id?: unknown;
-    };
+    // Lossless parse: native senders (Rust/Kotlin) serialize
+    // reply_to_message_id as a raw JSON u64 — 18-digit snowflakes round
+    // under plain JSON.parse and the reply anchor points at a message
+    // that doesn't exist. parseRpcJson surfaces big ints as strings.
+    const obj = parseRpcJson<{ reply_to_message_id?: unknown }>(
+      new TextDecoder().decode(payload),
+    );
     if (typeof obj.reply_to_message_id === 'string')
       return obj.reply_to_message_id;
     if (typeof obj.reply_to_message_id === 'number')
@@ -253,7 +257,9 @@ function decodeMediaMetadata(
   if (payload.length === 0) return undefined;
   let parsed: unknown;
   try {
-    parsed = JSON.parse(new TextDecoder().decode(payload));
+    // Lossless parse — cross-client metadata may carry u64s (file_id)
+    // as raw JSON numbers; big ones must arrive as strings, not rounded.
+    parsed = parseRpcJson(new TextDecoder().decode(payload));
   } catch {
     return undefined;
   }
