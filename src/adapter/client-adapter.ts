@@ -391,6 +391,7 @@ export interface PrivchatClientAdapter {
     file: Blob;
     filename: string;
     mime_type: string;
+    local_message_id?: string;
     width: number;
     height: number;
     caption?: string;
@@ -404,6 +405,7 @@ export interface PrivchatClientAdapter {
     file: Blob;
     filename: string;
     mime_type: string;
+    local_message_id?: string;
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
   }): Promise<SendTextOperationResult>;
@@ -419,6 +421,7 @@ export interface PrivchatClientAdapter {
     file: Blob;
     filename: string;
     mime_type: string;
+    local_message_id?: string;
     width: number;
     height: number;
     duration: number;

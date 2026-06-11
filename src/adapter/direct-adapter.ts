@@ -394,6 +394,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     file: Blob;
     filename: string;
     mime_type: string;
+    local_message_id?: string;
     width: number;
     height: number;
     caption?: string;
@@ -415,6 +416,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
         channel_type: args.channel_type,
         from_uid: fromUid,
         caption: args.caption,
+        local_message_id: args.local_message_id,
         metadata: {
           file_id: String(result.file_id),
           url: result.file_url,
@@ -431,6 +433,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     file: Blob;
     filename: string;
     mime_type: string;
+    local_message_id?: string;
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
   }): Promise<SendTextOperationResult> {
@@ -450,6 +453,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
         channel_type: args.channel_type,
         from_uid: fromUid,
         caption: args.caption,
+        local_message_id: args.local_message_id,
         metadata: {
           file_id: String(result.file_id),
           url: result.file_url,
@@ -467,6 +471,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     file: Blob;
     filename: string;
     mime_type: string;
+    local_message_id?: string;
     width: number;
     height: number;
     duration: number;
@@ -492,6 +497,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
         channel_type: args.channel_type,
         from_uid: fromUid,
         caption: args.caption,
+        local_message_id: args.local_message_id,
         metadata: {
           file_id: String(result.file_id),
           url: result.file_url,

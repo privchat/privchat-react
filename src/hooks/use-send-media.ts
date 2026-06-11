@@ -18,6 +18,10 @@ export interface SendImageArgs {
   file: Blob;
   filename: string;
   mime_type: string;
+  /** Caller-supplied local id, threaded into the send so an optimistic
+   *  UI row can correlate with the eventual cache row. Auto-generated
+   *  by the SDK when omitted. */
+  local_message_id?: string;
   width: number;
   height: number;
   caption?: string;
@@ -30,6 +34,8 @@ export interface SendFileArgs {
   file: Blob;
   filename: string;
   mime_type: string;
+  /** Caller-supplied local id; see `SendImageArgs.local_message_id`. */
+  local_message_id?: string;
   caption?: string;
   onProgress?: (event: UploadProgressEvent) => void;
 }
@@ -40,6 +46,8 @@ export interface SendVideoArgs {
   file: Blob;
   filename: string;
   mime_type: string;
+  /** Caller-supplied local id; see `SendImageArgs.local_message_id`. */
+  local_message_id?: string;
   /** Best-effort dimensions; the upload response's probed dims win if
    *  the server supplied them. */
   width: number;

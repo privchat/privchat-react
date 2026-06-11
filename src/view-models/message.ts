@@ -7,6 +7,7 @@
 // already carries the display text for both inbound and locally-echoed rows.
 
 import type { MessageRecord, MessageStatus, OutboxStatus } from '@privchat/sdk';
+import { decodeContentTypeName, type ContentTypeName } from '@privchat/sdk';
 
 export interface MessageItemVM {
   /**
@@ -75,20 +76,10 @@ export interface MessageItemVM {
   outbox_status?: OutboxStatus;
 }
 
-/** All content types defined by `protocol::ContentMessageType`. */
-export type ContentTypeName =
-  | 'text'
-  | 'voice'
-  | 'image'
-  | 'video'
-  | 'file'
-  | 'system'
-  | 'sticker'
-  | 'contact_card'
-  | 'location'
-  | 'link'
-  | 'forward'
-  | 'unknown';
+/** All content types defined by `protocol::ContentMessageType`.
+ *  Re-exported from `@privchat/sdk` — the SDK owns the canonical
+ *  mapping (one table, not two drifting copies). */
+export type { ContentTypeName };
 
 export interface ImageMetadataVM {
   type: 'image';
@@ -228,68 +219,14 @@ function decodeReplyTo(payload: Uint8Array): string | undefined {
   return undefined;
 }
 
-/** Word forms emitted by the server's JSON wire (`MessageType::as_str()`),
- *  used by `message/history/get` and `sync/get_difference`. These are
- *  the cache's canonical `message_type` representation per
- *  `MessageRecord` (cache/types.ts). */
-const WORD_CONTENT_TYPES: ReadonlySet<ContentTypeName> = new Set([
-  'text',
-  'voice',
-  'image',
-  'video',
-  'file',
-  'system',
-  'sticker',
-  'contact_card',
-  'location',
-  'link',
-  'forward',
-]);
-
 /** Map a cache `MessageRecord.message_type` into a stable discriminant
- *  the UI can switch on.
- *
- *  The field arrives in two equivalent representations depending on
- *  which ingest path wrote the row:
- *    - **word string** (`'text'`, `'image'`, …) — the server-JSON paths
- *      (history / sync) store `MessageType::as_str()` verbatim.
- *    - **decimal string** (`'0'`..`'10'`) — the FlatBuffers push / outbox
- *      / local-echo paths store `String(wireTag)`.
- *
- *  Both are accepted so history/sync-loaded rows render identically to
- *  live push rows (and so already-persisted IndexedDB rows in either
- *  form keep working). Unrecognized values fall back to `'unknown'` so
- *  renderers show a generic placeholder instead of crashing. */
+ *  the UI can switch on. Delegates to the SDK's canonical decoder, which
+ *  accepts both the word form ('text'/'image'/…, the canonical cache
+ *  representation) and the legacy decimal-string form ('0'..'10') still
+ *  present in IndexedDB rows persisted before the SDK converged its
+ *  write paths. Unrecognized values fall back to `'unknown'`. */
 function decodeContentType(raw: string): ContentTypeName {
-  if (WORD_CONTENT_TYPES.has(raw as ContentTypeName)) {
-    return raw as ContentTypeName;
-  }
-  switch (raw) {
-    case '0':
-      return 'text';
-    case '1':
-      return 'voice';
-    case '2':
-      return 'image';
-    case '3':
-      return 'video';
-    case '4':
-      return 'file';
-    case '5':
-      return 'system';
-    case '6':
-      return 'sticker';
-    case '7':
-      return 'contact_card';
-    case '8':
-      return 'location';
-    case '9':
-      return 'link';
-    case '10':
-      return 'forward';
-    default:
-      return 'unknown';
-  }
+  return decodeContentTypeName(raw);
 }
 
 /** Best-effort JSON envelope decode for media rows. The cache stores
