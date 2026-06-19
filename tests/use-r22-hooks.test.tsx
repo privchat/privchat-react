@@ -299,6 +299,9 @@ class MockAdapter implements PrivchatClientAdapter {
   async fileGetUrl() {
     return { file_url: "", expires_at: 0, file_size: 0, mime_type: "" };
   }
+  async downloadAttachmentBlob() {
+    return new Blob([]);
+  }
   async userQrcodeGet() {
     return { qr_key: "stub", qr_code: "https://stub/privchat:protocol/user/get/stub", user_id: "self" };
   }

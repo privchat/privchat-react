@@ -509,6 +509,11 @@ export interface PrivchatClientAdapter {
     mime_type: string;
   }>;
 
+  /** 附件加密 v1 下载：`file_id -> file/get_url -> signed_url + cek` → fetch 密文 →
+   *  WebCrypto 解密 → 明文 `Blob`。UI 用 `URL.createObjectURL(blob)` 预览/下载，
+   *  不能 `img.src = file_url`（v1 是密文）。CEK 不进 URL/日志。 */
+  downloadAttachmentBlob(fileId: string): Promise<Blob>;
+
   // ----- QR Code v1.3 (per QR_CODE_SPEC v1.3) -----
 
   /** Read the current user's permanent qr_key + fully-built scan URL.

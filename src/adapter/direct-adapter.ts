@@ -536,6 +536,10 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     };
   }
 
+  async downloadAttachmentBlob(fileId: string): Promise<Blob> {
+    return this.client.downloadAttachmentBlob(Number(fileId));
+  }
+
   // ----- QR Code v1.3 -----
 
   async userQrcodeGet() {

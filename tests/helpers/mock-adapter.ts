@@ -353,6 +353,10 @@ export function createMockAdapter(
       mime_type: string;
     }>,
 
+    downloadAttachmentBlob: REJECT_NOT_MOCKED('downloadAttachmentBlob') as (
+      fid: string,
+    ) => Promise<Blob>,
+
     // ---- QR Code v1.3 (default rejections; smoke tests don't exercise) ----
     userQrcodeGet: REJECT_NOT_MOCKED('userQrcodeGet') as () => Promise<{
       qr_key: string;
