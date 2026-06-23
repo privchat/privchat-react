@@ -7,7 +7,12 @@
 // already carries the display text for both inbound and locally-echoed rows.
 
 import type { MessageRecord, MessageStatus, OutboxStatus } from '@privchat/sdk';
-import { decodeContentTypeName, parseRpcJson, type ContentTypeName } from '@privchat/sdk';
+import {
+  decodeContentTypeName,
+  decodeMessagePayloadEnvelope,
+  parseRpcJson,
+  type ContentTypeName,
+} from '@privchat/sdk';
 
 export interface MessageItemVM {
   /**
@@ -233,12 +238,53 @@ function decodeContentType(raw: string): ContentTypeName {
   return decodeContentTypeName(raw);
 }
 
-/** Best-effort JSON envelope decode for media rows. The cache stores
- *  the wire `payload` bytes verbatim — for media types these are JSON
- *  bytes of `{content, metadata: {type, ...}}`. We extract `metadata`
- *  and shape it for the renderer. Empty / non-JSON / mismatched
- *  payloads return `undefined` and renderers fall through to the text
- *  bubble using `content`. */
+/** Pull the metadata record out of a wire `payload`. Media payloads are
+ *  the typed FlatBuffers `MessagePayloadEnvelope` (byte-compatible with
+ *  the server / Rust + iOS clients); the metadata union decodes to a flat
+ *  record with `file_id`, dims, etc. A legacy JSON payload (first byte
+ *  `{`) — possible for rows persisted by an older build — is still parsed
+ *  via the old path. Returns `undefined` when there is no usable metadata. */
+function extractMetadataRecord(
+  payload: Uint8Array,
+): Record<string, unknown> | undefined {
+  // Discriminate by first byte: JSON envelopes start with '{' (0x7B);
+  // FlatBuffers root offsets never do.
+  if (payload[0] === 0x7b) {
+    let parsed: unknown;
+    try {
+      // Lossless parse — cross-client metadata may carry u64s (file_id)
+      // as raw JSON numbers; big ones must arrive as strings, not rounded.
+      parsed = parseRpcJson(new TextDecoder().decode(payload));
+    } catch {
+      return undefined;
+    }
+    if (parsed === null || typeof parsed !== 'object') return undefined;
+    const meta = (parsed as { metadata?: unknown }).metadata;
+    if (meta === null || typeof meta !== 'object') return undefined;
+    return meta as Record<string, unknown>;
+  }
+  try {
+    const env = decodeMessagePayloadEnvelope(payload);
+    if (env.metadata === undefined) return undefined;
+    return env.metadata as unknown as Record<string, unknown>;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Coerce a u64 id field to the public string form. 服务端 push 是 JSON：
+ *  小 file_id 会被 `parseRpcJson` 保留为 number（大 u64 才保成 string），而
+ *  FlatBuffers 路径恒为 string。统一接受 number|string，避免「JSON push + 小
+ *  file_id」时误判 metadata 无效 → 气泡退化成「[文件]」。0/空 → undefined。 */
+function coerceIdString(v: unknown): string | undefined {
+  if (typeof v === 'string') return v !== '' && v !== '0' ? v : undefined;
+  if (typeof v === 'number' && Number.isFinite(v) && v > 0) return String(v);
+  return undefined;
+}
+
+/** Decode a media row's typed metadata into the renderer's shape. Empty /
+ *  unparseable / mismatched payloads return `undefined` and renderers fall
+ *  through to the text bubble using `content`. */
 function decodeMediaMetadata(
   payload: Uint8Array,
   contentType: ContentTypeName,
@@ -255,54 +301,64 @@ function decodeMediaMetadata(
     return undefined;
   }
   if (payload.length === 0) return undefined;
-  let parsed: unknown;
-  try {
-    // Lossless parse — cross-client metadata may carry u64s (file_id)
-    // as raw JSON numbers; big ones must arrive as strings, not rounded.
-    parsed = parseRpcJson(new TextDecoder().decode(payload));
-  } catch {
-    return undefined;
-  }
-  if (parsed === null || typeof parsed !== 'object') return undefined;
-  const meta = (parsed as { metadata?: unknown }).metadata;
-  if (meta === null || typeof meta !== 'object') return undefined;
-  const m = meta as Record<string, unknown>;
+  const m = extractMetadataRecord(payload);
+  if (m === undefined) return undefined;
   // The `type` field on the envelope MUST match `contentType` derived
   // from `message_type`; otherwise we have a sender bug. Don't rely on
   // it — trust `contentType` and shape accordingly.
   switch (contentType) {
-    case 'image':
-      if (typeof m.file_id !== 'string') return undefined;
+    case 'image': {
+      const fileId = coerceIdString(m.file_id);
+      if (fileId === undefined) return undefined;
       return {
         type: 'image',
-        file_id: m.file_id,
+        file_id: fileId,
         url: typeof m.url === 'string' ? m.url : undefined,
         width: typeof m.width === 'number' ? m.width : 0,
         height: typeof m.height === 'number' ? m.height : 0,
       };
-    case 'file':
-      if (typeof m.file_id !== 'string') return undefined;
+    }
+    case 'file': {
+      const fileId = coerceIdString(m.file_id);
+      if (fileId === undefined) return undefined;
+      // typed 协议字段是 file_name/file_size；legacy JSON 用 filename/size。两者都认。
+      const filename =
+        typeof m.file_name === 'string'
+          ? m.file_name
+          : typeof m.filename === 'string'
+            ? m.filename
+            : undefined;
+      const size =
+        typeof m.file_size === 'number'
+          ? m.file_size
+          : typeof m.size === 'number'
+            ? m.size
+            : undefined;
       return {
         type: 'file',
-        file_id: m.file_id,
+        file_id: fileId,
         url: typeof m.url === 'string' ? m.url : undefined,
-        filename: typeof m.filename === 'string' ? m.filename : undefined,
+        filename,
         mime_type: typeof m.mime_type === 'string' ? m.mime_type : undefined,
-        size: typeof m.size === 'number' ? m.size : undefined,
+        size: size !== undefined && size > 0 ? size : undefined,
       };
-    case 'voice':
-      if (typeof m.file_id !== 'string') return undefined;
+    }
+    case 'voice': {
+      const fileId = coerceIdString(m.file_id);
+      if (fileId === undefined) return undefined;
       return {
         type: 'voice',
-        file_id: m.file_id,
+        file_id: fileId,
         url: typeof m.url === 'string' ? m.url : undefined,
         duration: typeof m.duration === 'number' ? m.duration : 0,
       };
-    case 'video':
-      if (typeof m.file_id !== 'string') return undefined;
+    }
+    case 'video': {
+      const fileId = coerceIdString(m.file_id);
+      if (fileId === undefined) return undefined;
       return {
         type: 'video',
-        file_id: m.file_id,
+        file_id: fileId,
         url: typeof m.url === 'string' ? m.url : undefined,
         width: typeof m.width === 'number' ? m.width : 0,
         height: typeof m.height === 'number' ? m.height : 0,
@@ -310,6 +366,7 @@ function decodeMediaMetadata(
         thumbnail_url:
           typeof m.thumbnail_url === 'string' ? m.thumbnail_url : undefined,
       };
+    }
     case 'sticker': {
       // Sticker payloads carry an opaque `sticker_id` (catalog reference)
       // plus an already-resolved `image_url`. The UI only needs the URL

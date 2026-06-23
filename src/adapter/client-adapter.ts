@@ -507,6 +507,8 @@ export interface PrivchatClientAdapter {
     expires_at: number;
     file_size: number;
     mime_type: string;
+    /** 原始文件名（file 表数据；Scheme B 下 filename/size/mime 均由 get_url 下发）。 */
+    original_filename?: string;
   }>;
 
   /** 附件加密 v1 下载：`file_id -> file/get_url -> signed_url + cek` → fetch 密文 →

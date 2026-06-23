@@ -1,31 +1,21 @@
-// usePresence — fetches presence for a single user and periodically
-// refreshes it while the consumer is mounted. Server `presence/batch_get`
-// is the only avenue today (no realtime presence push channel exists in
-// the protocol yet); this is the minimum-viable surface so the
-// conversation header can render "online" / "last seen Xm ago".
+// usePresence — single-user presence for the conversation header.
 //
-// Defaults: poll every 10s while mounted. Real-time presence requires a
-// server-side push subscription (`presence/subscribe` + a
-// `presence_status_changed` push frame) that's NOT yet implemented;
-// this hook will switch to subscribe-once + listen the moment that
-// lands. Until then, peer-coming-online lag tracks the poll interval —
-// keep this at 10s (not lower) to avoid hammering the directory.
+// presence 是订阅态，不是轮询态。主路径 = 服务端 push：进入后做一次 `batchGetPresence`
+// 拉当前值，之后靠 L1 `presence_changed` 事件实时更新（服务端在对端 online/offline 变化
+// 时通过 channel publish 下发，SDK 解码并 emit）。轮询降级为**低频兜底**（默认 60s），
+// 仅防 push 丢失 / subscriber 注册漂移，不作主机制。
 //
-// Caller can opt out with `refreshMs: 0` (one-shot). When the uid is
-// empty/undefined the hook is a no-op (returns `undefined`) — group
-// panels just don't render presence.
+// 重连恢复由 SDK 负责（TS SDK 在 reconnect 后 replay 订阅）；本 hook 在 `connection`/
+// `user_id` 变化时重新拉一次当前值即可。
 //
-// We intentionally do NOT batch across hook callers in this version. A
-// future refactor can introduce a per-Provider presence store backed
-// by a single batched RPC; until then each visible direct panel costs
-// one 1-uid RPC every refresh interval.
+// `refreshMs: 0` 关闭兜底轮询（仅初始拉取 + push）。uid 空 → no-op。
 
 import { useEffect, useState } from 'react';
 import type { PresenceStatusItem } from '@privchat/sdk';
 import { usePrivchatClient } from './use-privchat-client.js';
 
 export interface UsePresenceOptions {
-  /** Poll interval in ms; 0 disables refresh after the initial fetch. */
+  /** 低频兜底轮询间隔(ms)；0 = 仅初始拉取 + push 事件，不兜底轮询。默认 60s。 */
   refreshMs?: number;
 }
 
@@ -34,7 +24,7 @@ export function usePresence(
   opts: UsePresenceOptions = {},
 ): PresenceStatusItem | undefined {
   const adapter = usePrivchatClient();
-  const refreshMs = opts.refreshMs ?? 10_000;
+  const refreshMs = opts.refreshMs ?? 60_000;
   const [presence, setPresence] = useState<PresenceStatusItem | undefined>(
     undefined,
   );
@@ -56,7 +46,7 @@ export function usePresence(
         .then((resp) => {
           if (cancelled) return;
           const item = resp.items.find((it) => it.user_id === uid);
-          setPresence(item);
+          if (item) setPresence(item);
         })
         .catch((e: unknown) => {
           // Best-effort; log but don't surface — header still works.
@@ -64,16 +54,46 @@ export function usePresence(
           console.warn('[privchat] usePresence batchGetPresence failed', e);
         });
     };
+
+    // 1) 初始拉一次当前值。
     fetchOnce();
-    if (refreshMs <= 0) {
-      return () => {
-        cancelled = true;
-      };
-    }
-    const handle = setInterval(fetchOnce, refreshMs);
+
+    // 2) 主路径：监听 presence_changed push 事件，实时更新（version 单调，丢弃乱序/陈旧帧）。
+    let lastVersion = -1;
+    const off = adapter.observeEvents((env) => {
+      const e = env.event;
+      // 2a) 重连落地：SDK 已 replay 订阅，但 server 的 subscribe-push 可能丢失/延迟，
+      // 60s 兜底轮询又太慢。这里在 authenticated 时立即重拉一次当前值（fetchOnce 直接
+      // setState、不过 version 门，所以也能修复 server 重启导致的 version 计数清零）。
+      // 同时把 lastVersion 重置回 -1：否则旧基线会把重启后的低 version push 帧当陈旧丢弃。
+      if (e.type === 'connection_state_changed') {
+        if (e.state === 'authenticated') {
+          lastVersion = -1;
+          fetchOnce();
+        }
+        return;
+      }
+      if (e.type !== 'presence_changed') return;
+      if (e.user_id !== user_id) return;
+      if (e.version < lastVersion) return;
+      lastVersion = e.version;
+      setPresence({
+        user_id: uid,
+        is_online: e.is_online,
+        last_seen_at: e.last_seen_at,
+        device_count: e.device_count,
+        version: e.version,
+      });
+    });
+
+    // 3) 低频兜底轮询（防 push 丢失 / subscriber 漂移），默认 60s。
+    const handle =
+      refreshMs > 0 ? setInterval(fetchOnce, refreshMs) : undefined;
+
     return () => {
       cancelled = true;
-      clearInterval(handle);
+      off();
+      if (handle !== undefined) clearInterval(handle);
     };
   }, [adapter, user_id, refreshMs]);
 

@@ -447,7 +447,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
       'file',
       args.onProgress,
     );
-    return this.client.sendTextMessage(
+    const sendResult = await this.client.sendTextMessage(
       buildSendFileInput({
         channel_id: args.channel_id,
         channel_type: args.channel_type,
@@ -463,6 +463,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
         },
       }),
     );
+    return sendResult;
   }
 
   async sendVideo(args: {
@@ -533,6 +534,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
       expires_at: resp.expires_at,
       file_size: resp.file_size,
       mime_type: resp.mime_type,
+      original_filename: resp.original_filename,
     };
   }
 
