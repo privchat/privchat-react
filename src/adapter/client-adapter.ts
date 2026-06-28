@@ -479,6 +479,20 @@ export interface PrivchatClientAdapter {
     muted: boolean,
   ): Promise<import('@privchat/sdk').GroupMuteAllResponse>;
 
+  /** Pin / unpin a group message (owner / admin only; server enforces).
+   *  `pinned=false` unpins. `channelId` is the message's channel. */
+  pinGroupMessage(
+    groupId: string,
+    channelId: string,
+    messageId: string,
+    pinned: boolean,
+  ): Promise<import('@privchat/sdk').MessagePinResponse>;
+
+  /** List a group's pinned messages (any member; newest-pinned first). */
+  listGroupPinnedMessages(
+    groupId: string,
+  ): Promise<import('@privchat/sdk').MessagePinListResponse>;
+
   // ----- Reactions (R3.6) -----
 
   /** Add an emoji reaction to a server-acked message. Idempotent at

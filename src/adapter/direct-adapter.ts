@@ -361,6 +361,26 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     return this.client.groupMuteAll(Number(groupId), operator, muted);
   }
 
+  pinGroupMessage(
+    groupId: string,
+    channelId: string,
+    messageId: string,
+    pinned: boolean,
+  ): Promise<import('@privchat/sdk').MessagePinResponse> {
+    return this.client.messagePin(
+      Number(groupId),
+      Number(channelId),
+      Number(messageId),
+      pinned,
+    );
+  }
+
+  listGroupPinnedMessages(
+    groupId: string,
+  ): Promise<import('@privchat/sdk').MessagePinListResponse> {
+    return this.client.messagePinList(Number(groupId));
+  }
+
   /** Resolve the current session uid as a `number` for wire ops that
    *  require `operator_id` / `current_owner_id`. Throws when there's
    *  no authenticated session — these RPCs cannot be issued

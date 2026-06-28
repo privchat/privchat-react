@@ -250,6 +250,12 @@ class MockAdapter implements PrivchatClientAdapter {
   async muteGroupAll() {
     return { success: true, group_id: '0', all_muted: false, message: 'ok', operator_id: '0', updated_at: 0 };
   }
+  async pinGroupMessage() {
+    return { success: true, group_id: 0, message_id: 0, pinned: true };
+  }
+  async listGroupPinnedMessages() {
+    return { group_id: 0, items: [] };
+  }
   async sendImage(): Promise<SendTextOperationResult> {
     throw new Error('not used in this test');
   }

@@ -318,6 +318,8 @@ export function createMockAdapter(
     getGroupSettings: REJECT_NOT_MOCKED('getGroupSettings') as PrivchatClientAdapter['getGroupSettings'],
     updateGroupSettings: REJECT_NOT_MOCKED('updateGroupSettings') as PrivchatClientAdapter['updateGroupSettings'],
     muteGroupAll: REJECT_NOT_MOCKED('muteGroupAll') as PrivchatClientAdapter['muteGroupAll'],
+    pinGroupMessage: REJECT_NOT_MOCKED('pinGroupMessage') as PrivchatClientAdapter['pinGroupMessage'],
+    listGroupPinnedMessages: REJECT_NOT_MOCKED('listGroupPinnedMessages') as PrivchatClientAdapter['listGroupPinnedMessages'],
 
     // ---- R3.6 reactions ----
     addReaction: REJECT_NOT_MOCKED('addReaction') as (

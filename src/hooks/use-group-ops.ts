@@ -12,6 +12,8 @@ import type {
   GroupSettingsPatch,
   GroupSettingsUpdateResponse,
   GroupTransferOwnerResponse,
+  MessagePinResponse,
+  MessagePinListResponse,
 } from '@privchat/sdk';
 import { usePrivchatClient } from './use-privchat-client.js';
 
@@ -54,6 +56,16 @@ export interface GroupOps {
   /** Toggle whole-group mute. Owner-only. Goes through the dedicated
    *  `group/settings/mute_all` route. */
   muteAll: (groupId: string, muted: boolean) => Promise<GroupMuteAllResponse>;
+  /** Pin / unpin a group message (owner / admin only; server enforces).
+   *  `pinned=false` unpins. */
+  pinMessage: (
+    groupId: string,
+    channelId: string,
+    messageId: string,
+    pinned: boolean,
+  ) => Promise<MessagePinResponse>;
+  /** List a group's pinned messages (any member; newest-pinned first). */
+  pinnedMessages: (groupId: string) => Promise<MessagePinListResponse>;
 }
 
 export function useGroupOps(): GroupOps {
@@ -110,6 +122,15 @@ export function useGroupOps(): GroupOps {
     (groupId: string, muted: boolean) => adapter.muteGroupAll(groupId, muted),
     [adapter],
   );
+  const pinMessage = useCallback(
+    (groupId: string, channelId: string, messageId: string, pinned: boolean) =>
+      adapter.pinGroupMessage(groupId, channelId, messageId, pinned),
+    [adapter],
+  );
+  const pinnedMessages = useCallback(
+    (groupId: string) => adapter.listGroupPinnedMessages(groupId),
+    [adapter],
+  );
   return useMemo(
     () => ({
       listMembers,
@@ -123,6 +144,8 @@ export function useGroupOps(): GroupOps {
       getSettings,
       updateSettings,
       muteAll,
+      pinMessage,
+      pinnedMessages,
     }),
     [
       listMembers,
@@ -136,6 +159,8 @@ export function useGroupOps(): GroupOps {
       getSettings,
       updateSettings,
       muteAll,
+      pinMessage,
+      pinnedMessages,
     ],
   );
 }
