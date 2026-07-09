@@ -70,6 +70,11 @@ export const DEFAULT_TITLE_I18N: ConversationTitleI18n = {
  * value MUST NOT be classified as a system uid even if it would parse —
  * the boundary check guards against typos like `"0"` or `"-1"`.
  */
+/** Business identifier for the system account (review red line: never uid==1). */
+export function isSystemUsername(username: string | undefined | null): boolean {
+  return username === 'system' || username === '__system_1__';
+}
+
 export function isSystemUser(uid: string | undefined): boolean {
   if (uid === undefined || uid === '') return false;
   const n = Number(uid);
@@ -158,6 +163,18 @@ export function resolveConversationTitle(input: ResolveTitleInput): Conversation
   // Direct channel
   if (channel.channel_type === 1) {
     const peerUid = input.peerUid ?? peerUidOf(channel, selfUid);
+
+    // System detection precedence (review red line): the business
+    // identifier is username === 'system' (legacy '__system_1__'
+    // transitional); the 1-99 uid *range* below is the server's reserved
+    // system id segment (an ID-space convention, not a hardcoded uid).
+    if (user !== undefined && isSystemUsername(user.username)) {
+      return {
+        title: i18n.system_notifications,
+        kind: 'system',
+        resolved: true,
+      };
+    }
 
     if (peerUid !== undefined && isSystemUser(peerUid)) {
       return {
