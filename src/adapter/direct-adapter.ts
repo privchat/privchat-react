@@ -236,7 +236,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     serverMessageId: string,
     channelId: string,
   ): Promise<MessageRevokeResponse> {
-    return this.client.messageRevoke(Number(serverMessageId), Number(channelId));
+    return this.client.messageRevoke(serverMessageId, Number(channelId));
   }
 
   subscribeChannel(channelId: string, channelType: number): Promise<unknown> {
@@ -370,7 +370,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     return this.client.messagePin(
       Number(groupId),
       Number(channelId),
-      Number(messageId),
+      messageId,
       pinned,
     );
   }
@@ -535,11 +535,11 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
   }
 
   addReaction(serverMessageId: string, emoji: string): Promise<unknown> {
-    return this.client.messageReactionAdd(Number(serverMessageId), emoji);
+    return this.client.messageReactionAdd(serverMessageId, emoji);
   }
 
   removeReaction(serverMessageId: string, emoji: string): Promise<unknown> {
-    return this.client.messageReactionRemove(Number(serverMessageId), emoji);
+    return this.client.messageReactionRemove(serverMessageId, emoji);
   }
 
   async listReactions(serverMessageId: string) {
