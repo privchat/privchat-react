@@ -188,6 +188,22 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     return this.client.accountSearch(query, page, pageSize);
   }
 
+  messageHistorySearch(
+    query: string,
+    opts?: { channelId?: number; cursor?: string; limit?: number },
+  ) {
+    return this.client.messageHistorySearch(query, opts);
+  }
+
+  jumpToMessageContext(
+    channelId: string,
+    channelType: number,
+    messageId: number | string,
+    opts?: { beforeLimit?: number; afterLimit?: number },
+  ) {
+    return this.client.jumpToMessageContext(channelId, channelType, messageId, opts);
+  }
+
   friendApply(
     targetUserId: number,
     message?: string,

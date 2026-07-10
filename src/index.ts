@@ -59,6 +59,7 @@ export {
 export { useOpenDirectConversation } from './hooks/use-open-direct-conversation.js';
 
 // ----- Hooks (R2.3: friend / group management commands) -----
+export { useMessageSearch, useJumpToMessage } from './hooks/use-message-search.js';
 export {
   useAccountSearch,
   useBlockUser,

@@ -244,6 +244,31 @@ export interface PrivchatClientAdapter {
     pageSize?: number,
   ): Promise<AccountSearchResponse>;
 
+  /** Cloud history search over the caller's visible channels (message
+   *  history spec §4). Hits are snippet projections — never write them into
+   *  the message cache; click-through goes via [jumpToMessageContext].
+   *  Server rate-limits 300ms/user: debounce 300–500ms, drop stale results,
+   *  skip queries under 2 chars. `channelId` narrows to one conversation. */
+  messageHistorySearch(
+    query: string,
+    opts?: { channelId?: number; cursor?: string; limit?: number },
+  ): Promise<import('@privchat/sdk').MessageHistorySearchResponse>;
+
+  /** jump-to-message (spec §5): fetches full context around the anchor,
+   *  backfills the local cache (IndexedDB + memory buffer), and returns the
+   *  window + anchor so the UI can scroll/highlight from local state. */
+  jumpToMessageContext(
+    channelId: string,
+    channelType: number,
+    messageId: number | string,
+    opts?: { beforeLimit?: number; afterLimit?: number },
+  ): Promise<{
+    records: import('@privchat/sdk').MessageRecord[];
+    anchor: import('@privchat/sdk').MessageRecord;
+    has_more_before: boolean;
+    has_more_after: boolean;
+  }>;
+
   /** Send a friend request. `source` / `source_id` are analytics tags. */
   friendApply(
     targetUserId: number,
