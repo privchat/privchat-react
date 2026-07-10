@@ -75,6 +75,23 @@ export function isSystemUsername(username: string | undefined | null): boolean {
   return username === 'system' || username === '__system_1__';
 }
 
+/**
+ * Fixed display name the server assigns to the system account (see
+ * `config.rs` system account `display_name`). The channel entity sync
+ * surfaces this resolved name rather than the peer uid/username, so
+ * matching the constant is how the web recognises a system DM. Kept in a
+ * set so future server localisations can be added without touching call
+ * sites.
+ */
+const SYSTEM_DISPLAY_NAMES: ReadonlySet<string> = new Set([
+  'System Message',
+  'System Messages',
+]);
+
+export function isSystemDisplayName(title: string | undefined | null): boolean {
+  return title !== undefined && title !== null && SYSTEM_DISPLAY_NAMES.has(title.trim());
+}
+
 export function isSystemUser(uid: string | undefined): boolean {
   if (uid === undefined || uid === '') return false;
   const n = Number(uid);
@@ -195,6 +212,21 @@ export function resolveConversationTitle(input: ResolveTitleInput): Conversation
       };
     }
 
+    // The channel entity sync carries the peer's *resolved display name*
+    // in `channel.title` (not a uid or the `system` username), so the two
+    // uid/username system checks above can't fire for the system DM. The
+    // system account's display name is a fixed server constant
+    // ("System Message", server config.rs) — match it so the row still
+    // localizes to 系统消息. Drop this once the channel entity surfaces the
+    // peer uid/username the way the Rust SDK does.
+    if (channel.title !== undefined && isSystemDisplayName(channel.title)) {
+      return {
+        title: i18n.system_notifications,
+        kind: 'system',
+        resolved: true,
+      };
+    }
+
     // Title precedence (per R2.1 拍板):
     //   alias (friend remark) > nickname > username > unknown
     // Alias only applies when we have a peer profile to attach a
@@ -241,10 +273,23 @@ export function resolveConversationTitle(input: ResolveTitleInput): Conversation
       };
     }
 
-    // Profile not cached yet — degrade to the ID-bearing placeholder
-    // so the row is at least clickable. The channel-record's `title`
-    // (which the server fills with the peer uid for direct channels)
-    // is preferred over the channel_id because it's actually the peer.
+    // Profile not cached yet. The channel entity sync now carries the
+    // peer's *resolved display name* in `channel.title` (nickname /
+    // username), NOT a bare uid — so use it directly instead of wrapping
+    // it in the "用户 #{id}" placeholder. Only degrade to the placeholder
+    // when the title is missing or is still a bare numeric uid (legacy
+    // rows / a peer that never synced a profile).
+    if (
+      channel.title !== undefined &&
+      channel.title !== '' &&
+      !/^\d+$/.test(channel.title)
+    ) {
+      return {
+        title: channel.title,
+        kind: 'direct',
+        resolved: true,
+      };
+    }
     const placeholderId = channel.title ?? peerUid ?? channel.channel_id;
     return {
       title: i18n.unknown_user_template(placeholderId),
