@@ -14,7 +14,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup } from '@testing-library/react';
-import type { GroupMemberListResponse } from '@privchat/sdk';
+import type { GroupMember, GroupMemberListResponse } from '@privchat/sdk';
 import { useGroupOps } from '../../src/index.js';
 import { createMockAdapter } from '../helpers/mock-adapter.js';
 import { renderHookWithAdapter } from '../helpers/render-with-provider.js';
@@ -319,5 +319,33 @@ describe('useGroupOps', () => {
       result.current.updateSettings('1', { description: 'x' }),
     ).rejects.toBe(err);
     await expect(result.current.muteAll('1', true)).rejects.toBe(err);
+  });
+
+  // P6-1C: system accounts (username 'system'/'__system_1__') must never appear as
+  // group members — filtered at this single hook boundary; total corrected.
+  it('listMembers drops system-username members and fixes total', async () => {
+    const member = (userId: number, username: string): GroupMember => ({
+      user_id: userId,
+      username,
+      nickname: `n${userId}`,
+      role: 'member',
+      joined_at: 0,
+      is_muted: false,
+    });
+    const listGroupMembers = vi.fn().mockResolvedValue({
+      members: [
+        member(2, 'alice'),
+        member(1, 'system'),
+        member(3, '__system_1__'),
+        member(4, 'bob'),
+      ],
+      total: 4,
+    } satisfies GroupMemberListResponse);
+    const adapter = createMockAdapter({ listGroupMembers });
+    const { result } = renderHookWithAdapter(() => useGroupOps(), adapter);
+
+    const resp = await result.current.listMembers('9');
+    expect(resp.members.map((m) => m.username)).toEqual(['alice', 'bob']);
+    expect(resp.total).toBe(2);
   });
 });
