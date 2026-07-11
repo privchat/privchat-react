@@ -24,6 +24,14 @@ export {
   usePrivchatClient,
 } from './hooks/use-privchat-client.js';
 export { useConnectionState } from './hooks/use-connection-state.js';
+export {
+  useClientRuntime,
+  useRuntimeBanner,
+  getClientRuntime,
+} from './hooks/use-client-runtime.js';
+export type { ClientRuntimeSnapshot } from './hooks/use-client-runtime.js';
+export { useAvatarModel } from './hooks/use-avatar-model.js';
+export type { UseAvatarModelInput } from './hooks/use-avatar-model.js';
 
 // ----- Hooks (R1) -----
 export {
@@ -151,7 +159,7 @@ export {
 // ----- View models (R2A) -----
 export {
   DEFAULT_TITLE_I18N,
-  isSystemUser,
+  isSystemUserType,
   resolveConversationTitle,
   type ConversationTitleI18n,
   type ConversationTitleKind,

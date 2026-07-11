@@ -61,18 +61,18 @@ export const DEFAULT_TITLE_I18N: ConversationTitleI18n = {
   unknown_group_template: (id) => `Group #${id}`,
 };
 
-/**
- * `true` when the uid belongs to the platform's reserved system-account
- * range. Mirrors server-side `is_system_user(uid): uid ∈ [1, 99]`.
- *
- * Strict input validation: the wire emits user_id as either a JSON
- * number or a decimal string. A non-numeric / negative / out-of-range
- * value MUST NOT be classified as a system uid even if it would parse —
- * the boundary check guards against typos like `"0"` or `"-1"`.
- */
 /** Business identifier for the system account (review red line: never uid==1). */
 export function isSystemUsername(username: string | undefined | null): boolean {
   return username === 'system' || username === '__system_1__';
+}
+
+/**
+ * P4.2 拍板（与 KMP app / TS SDK 对齐）：系统账号判定按 **user_type === 1**
+ * （server USER_TYPE_SYSTEM）；username 通道兼容。**禁止按 uid**——此前的 uid∈[1,99]
+ * 段判定已删除（uid 是部署事实不是身份语义；user record 未同步时由 display-name 常量兜底）。
+ */
+export function isSystemUserType(userType: number | undefined | null): boolean {
+  return userType === 1;
 }
 
 /**
@@ -90,12 +90,6 @@ const SYSTEM_DISPLAY_NAMES: ReadonlySet<string> = new Set([
 
 export function isSystemDisplayName(title: string | undefined | null): boolean {
   return title !== undefined && title !== null && SYSTEM_DISPLAY_NAMES.has(title.trim());
-}
-
-export function isSystemUser(uid: string | undefined): boolean {
-  if (uid === undefined || uid === '') return false;
-  const n = Number(uid);
-  return Number.isSafeInteger(n) && n >= 1 && n <= 99;
 }
 
 /**
@@ -180,31 +174,14 @@ export function resolveConversationTitle(input: ResolveTitleInput): Conversation
   // Direct channel
   if (channel.channel_type === 1) {
     const peerUid = input.peerUid ?? peerUidOf(channel, selfUid);
+    void peerUid; // peerUid 不再参与系统判定（P4.2 拍板禁 uid），仍供后续 presence/头像使用。
 
-    // System detection precedence (review red line): the business
-    // identifier is username === 'system' (legacy '__system_1__'
-    // transitional); the 1-99 uid *range* below is the server's reserved
-    // system id segment (an ID-space convention, not a hardcoded uid).
-    if (user !== undefined && isSystemUsername(user.username)) {
-      return {
-        title: i18n.system_notifications,
-        kind: 'system',
-        resolved: true,
-      };
-    }
-
-    if (peerUid !== undefined && isSystemUser(peerUid)) {
-      return {
-        title: i18n.system_notifications,
-        kind: 'system',
-        resolved: true,
-      };
-    }
-
-    // System fallback when the channel record itself names a system uid
-    // as its title (server emits `title` = peer uid for direct channels
-    // — see `project_channel_identity_is_channel_id.md`).
-    if (channel.title !== undefined && isSystemUser(channel.title)) {
+    // System detection precedence (P4.2 拍板，与 KMP app 一致): user_type === 1 优先，
+    // username === 'system'（legacy '__system_1__'）兼容；uid 段判定已删除。
+    if (
+      user !== undefined &&
+      (isSystemUserType(user.user_type) || isSystemUsername(user.username))
+    ) {
       return {
         title: i18n.system_notifications,
         kind: 'system',

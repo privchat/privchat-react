@@ -9,7 +9,7 @@ import type {
   UserRecord,
 } from '@privchat/sdk';
 import {
-  isSystemUser,
+  isSystemUserType,
   resolveConversationTitle,
   type ConversationTitleI18n,
 } from '../src/index.js';
@@ -42,27 +42,13 @@ const g = (overrides: Partial<GroupRecord> = {}): GroupRecord => ({
   ...overrides,
 });
 
-describe('isSystemUser', () => {
-  it('accepts uids in [1, 99]', () => {
-    expect(isSystemUser('1')).toBe(true);
-    expect(isSystemUser('50')).toBe(true);
-    expect(isSystemUser('99')).toBe(true);
-  });
-
-  it('rejects values outside the system range', () => {
-    expect(isSystemUser('0')).toBe(false);
-    expect(isSystemUser('100')).toBe(false);
-    expect(isSystemUser('100002048')).toBe(false);
-    expect(isSystemUser('-1')).toBe(false);
-  });
-
-  it('rejects malformed input', () => {
-    expect(isSystemUser('')).toBe(false);
-    expect(isSystemUser(undefined)).toBe(false);
-    expect(isSystemUser('1.5')).toBe(false);
-    expect(isSystemUser('NaN')).toBe(false);
-    expect(isSystemUser('1e2')).toBe(false); // not safe-integer literal
-    expect(isSystemUser('hello')).toBe(false);
+describe('isSystemUserType (P4.2 拍板: user_type===1, never uid)', () => {
+  it('accepts only USER_TYPE_SYSTEM', () => {
+    expect(isSystemUserType(1)).toBe(true);
+    expect(isSystemUserType(0)).toBe(false);
+    expect(isSystemUserType(2)).toBe(false); // bot
+    expect(isSystemUserType(undefined)).toBe(false);
+    expect(isSystemUserType(null)).toBe(false);
   });
 });
 
@@ -110,33 +96,29 @@ describe('resolveConversationTitle — direct channels', () => {
     expect(vm.title).toBe('User #500');
   });
 
-  it('peerUid in system range → 系统通知 even without UserRecord', () => {
+  it('peerUid alone never classifies system (P4.2 拍板: 判定按 user_type, 禁 uid)', () => {
     const vm = resolveConversationTitle({
       channel: ch({ channel_type: 1, title: '1' }),
       peerUid: '1',
     });
-    expect(vm).toMatchObject({ kind: 'system', resolved: true });
-    expect(vm.title).toBe('System Notifications');
+    expect(vm.kind).not.toBe('system');
+    expect(vm.title).toBe('User #1');
   });
 
-  it('channel.title is system uid → 系统通知 (no peerUid passed)', () => {
+  it('channel.title that is a bare uid does not classify system (uid is not identity)', () => {
     const vm = resolveConversationTitle({
       channel: ch({ channel_type: 1, title: '1' }),
     });
-    expect(vm.kind).toBe('system');
-    expect(vm.resolved).toBe(true);
+    expect(vm.kind).not.toBe('system');
   });
 
-  it('user.user_type=1 still renders normally — kind is determined by uid range, not type', () => {
-    // user_type=1 (system) is informational metadata for UI badges; the
-    // resolver classifies by uid range so a normal user that happens to
-    // be tagged user_type=1 still shows nickname (deliberate).
+  it('user.user_type=1 classifies as system (P4.2 拍板: user_type 是权威判据)', () => {
     const vm = resolveConversationTitle({
       channel: ch({ channel_type: 1 }),
-      user: u({ user_id: '500', user_type: 1, nickname: 'Bot' }),
+      user: u({ user_id: '500', user_type: 1, nickname: 'System Message' }),
     });
-    expect(vm.kind).toBe('direct');
-    expect(vm.title).toBe('Bot');
+    expect(vm.kind).toBe('system');
+    expect(vm.title).toBe('System Notifications');
   });
 });
 
@@ -193,9 +175,10 @@ describe('resolveConversationTitle — friendship alias (R2.1)', () => {
     expect(vm.subtitle).toBeUndefined();
   });
 
-  it('system uid still wins over alias (alias never overrides system label)', () => {
+  it('system (by user_type) still wins over alias (alias never overrides system label)', () => {
     const vm = resolveConversationTitle({
       channel: ch({ channel_type: 1, title: '1' }),
+      user: u({ user_id: '1', user_type: 1, username: 'system', nickname: 'System Message' }),
       friendship: fr({ user_id: '1', alias: '小助手' }), // user tried to remark system!
       peerUid: '1',
     });
@@ -256,6 +239,7 @@ describe('resolveConversationTitle — i18n override', () => {
     expect(
       resolveConversationTitle({
         channel: ch({ channel_type: 1, title: '1' }),
+        user: u({ user_id: '1', user_type: 1, username: 'system', nickname: 'System Message' }),
         i18n,
       }).title,
     ).toBe('系统通知');
