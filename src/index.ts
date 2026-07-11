@@ -31,6 +31,11 @@ export {
 } from './hooks/use-client-runtime.js';
 export type { ClientRuntimeSnapshot } from './hooks/use-client-runtime.js';
 export { useAvatarModel } from './hooks/use-avatar-model.js';
+export { useMessageSearchState } from './hooks/use-message-search-state.js';
+export type {
+  MessageSearchState,
+  UseMessageSearchStateOptions,
+} from './hooks/use-message-search-state.js';
 export type { UseAvatarModelInput } from './hooks/use-avatar-model.js';
 
 // ----- Hooks (R1) -----
