@@ -41,16 +41,13 @@ export function getClientRuntime(adapter: PrivchatClientAdapter): ClientRuntime 
       }),
     observeOutbox: (cb) => adapter.observeOutbox(cb),
   });
-  // 已连接后才挂载的组件：用当前连接态补一发（事件总线只发增量）。
+  // 已连接后才挂载的组件：用当前连接态给 connectivity + sync 切片补种子（事件总线只发
+  // 增量，自动登录在 UI 挂载前就已 authenticated，组件永远收不到那次 transition 事件）。
+  // seedConnectionState 复用与真实事件完全相同的映射，因此 connectivity.authenticated 会
+  // 被正确置真 —— 否则 banner 会在一个完全正常的连接上误报「已断开/offline」。
   const current = adapter.connectionState();
   if (current !== 'disconnected') {
-    // createClientRuntime 的映射入口是事件回调；直接经私有 slice 不可达，
-    // 这里通过一次性合成事件补种子（语义与真实事件一致）。
-    runtime.connectivity.getState(); // touch
-    // 合成种子：直接复用 runtime 的公开喂口 —— onConnectionStateChanged 由订阅闭包持有，
-    // 无法直接调用；因此用 markSyncCompleted 之外的通用路径：无。改为在 createClientRuntime
-    // 前读取初态是更干净的做法，此处保底：authenticated 时补记初始同步完成。
-    if (current === 'authenticated') runtime.markSyncCompleted();
+    runtime.seedConnectionState(current);
   }
   runtimes.set(key, runtime);
   return runtime;
