@@ -377,6 +377,21 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     return this.client.groupMuteAll(Number(groupId), operator, muted);
   }
 
+  groupApprovalList(
+    groupId: string,
+  ): Promise<import('@privchat/sdk').GroupApprovalListResponse> {
+    // operator_id 由 SDK 从 session 自填（与 groupApprovalHandle 一致）。
+    return this.client.groupApprovalList(Number(groupId));
+  }
+
+  groupApprovalHandle(
+    requestId: string,
+    approve: boolean,
+    reason?: string,
+  ): Promise<import('@privchat/sdk').GroupApprovalHandleResponse> {
+    return this.client.groupApprovalHandle(requestId, approve, reason);
+  }
+
   pinGroupMessage(
     groupId: string,
     channelId: string,

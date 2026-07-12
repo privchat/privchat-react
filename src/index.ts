@@ -32,6 +32,8 @@ export {
 export type { ClientRuntimeSnapshot } from './hooks/use-client-runtime.js';
 export { useAvatarModel } from './hooks/use-avatar-model.js';
 export { useMessageSearchState } from './hooks/use-message-search-state.js';
+export { useGroupApprovals } from './hooks/use-group-approvals.js';
+export type { GroupApprovalsState } from './hooks/use-group-approvals.js';
 export type {
   MessageSearchState,
   UseMessageSearchStateOptions,

@@ -504,6 +504,20 @@ export interface PrivchatClientAdapter {
     muted: boolean,
   ): Promise<import('@privchat/sdk').GroupMuteAllResponse>;
 
+  /** List pending group-join approvals (owner/admin; server gates).
+   *  The adapter/SDK fills operator_id from the current session. */
+  groupApprovalList(
+    groupId: string,
+  ): Promise<import('@privchat/sdk').GroupApprovalListResponse>;
+
+  /** Approve/reject a pending join request by its server UUID
+   *  (`GroupApprovalItem.request_id`). `approve=true` admits the applicant. */
+  groupApprovalHandle(
+    requestId: string,
+    approve: boolean,
+    reason?: string,
+  ): Promise<import('@privchat/sdk').GroupApprovalHandleResponse>;
+
   /** Pin / unpin a group message (owner / admin only; server enforces).
    *  `pinned=false` unpins. `channelId` is the message's channel. */
   pinGroupMessage(
