@@ -443,7 +443,7 @@ describe('useConversation (R1)', () => {
     rerender();
     expect(result.current.messages).toBe(first); // ref stability across re-renders
     expect(first).toHaveLength(1);
-    expect(first[0]?.content).toBe('hi');
+    expect(first[0]?.body.text).toBe('hi');
   });
 
   it('re-renders when observeConversation fires a patch', () => {
@@ -460,7 +460,7 @@ describe('useConversation (R1)', () => {
       });
     });
     expect(result.current.messages).toHaveLength(1);
-    expect(result.current.messages[0]?.content).toBe('arrived');
+    expect(result.current.messages[0]?.body.text).toBe('arrived');
   });
 
   it('marks is_self based on session.user_id', () => {
@@ -551,10 +551,10 @@ describe('useConversation (R1)', () => {
       { wrapper: wrapper(adapter), initialProps: { id: '100' } },
     );
     await waitFor(() => expect(adapter.openCalls).toHaveLength(1));
-    expect(result.current.messages[0]?.content).toBe('A');
+    expect(result.current.messages[0]?.body.text).toBe('A');
     rerender({ id: '200' });
     await waitFor(() => expect(adapter.openCalls).toHaveLength(2));
-    expect(result.current.messages[0]?.content).toBe('B');
+    expect(result.current.messages[0]?.body.text).toBe('B');
   });
 });
 

@@ -11,7 +11,10 @@ import {
   decodeContentTypeName,
   decodeMessagePayloadEnvelope,
   parseRpcJson,
+  projectMessageContent,
   type ContentTypeName,
+  type MessageContent,
+  type MessagePayloadEnvelope,
 } from '@privchat/sdk';
 
 export interface MessageItemVM {
@@ -25,7 +28,8 @@ export interface MessageItemVM {
   server_message_id?: string;
   local_message_id?: string;
   from_uid: string;
-  content: string;
+  /** SDK-owned, fully projected content. UI code must not parse raw message content. */
+  body: MessageContent;
   /**
    * Send-state of the row. NOT a read-receipt field — peer "已读" is a
    * separate dimension carried in `read_by_peer` below. `pending`, `sent`,
@@ -180,8 +184,13 @@ export function projectMessageRecord(
     peerReadPts !== undefined &&
     BigInt(record.pts) <= BigInt(peerReadPts);
   const contentType = decodeContentType(record.message_type);
+  const envelope = decodeContentEnvelope(record.payload);
   const metadata = decodeMediaMetadata(record.payload, contentType);
-  const replyTo = decodeReplyTo(record.payload);
+  const body = projectMessageContent({
+    content_type: contentType,
+    content: record.content,
+    envelope,
+  });
   const outboxStatus =
     outboxStatusByLocalId !== undefined &&
     record.local_message_id !== undefined
@@ -192,7 +201,7 @@ export function projectMessageRecord(
     server_message_id: record.server_message_id,
     local_message_id: record.local_message_id,
     from_uid: record.from_uid,
-    content: record.content,
+    body,
     status: record.status,
     timestamp: record.timestamp,
     is_self: isSelf,
@@ -201,9 +210,26 @@ export function projectMessageRecord(
     revoked: record.revoked === true,
     content_type: contentType,
     metadata,
-    reply_to: replyTo,
+    reply_to: body.reply_to_message_id,
     outbox_status: outboxStatus,
   };
+}
+
+function decodeContentEnvelope(payload: Uint8Array): MessagePayloadEnvelope | undefined {
+  if (payload.length === 0) return undefined;
+  if (payload[0] === 0x7b) {
+    try {
+      const value = parseRpcJson<MessagePayloadEnvelope>(new TextDecoder().decode(payload));
+      return typeof value?.content === 'string' ? value : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  try {
+    return decodeMessagePayloadEnvelope(payload);
+  } catch {
+    return undefined;
+  }
 }
 
 /** Pull `reply_to_message_id` out of the JSON envelope, if present.
