@@ -278,7 +278,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
   }
 
   async pinChannel(channelId: string, pinned: boolean): Promise<unknown> {
-    const r = await this.client.channelPin(Number(channelId), pinned);
+    const r = await this.client.channelPin(channelId, pinned);
     // Mirror server state to local cache so observers fire and the UI
     // toggle flips without waiting for the next entity sync.
     this.client.applyChannelFlags(channelId, { pinned });
