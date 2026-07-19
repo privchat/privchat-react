@@ -184,7 +184,7 @@ export function projectMessageRecord(
     peerReadPts !== undefined &&
     BigInt(record.pts) <= BigInt(peerReadPts);
   const contentType = decodeContentType(record.message_type);
-  const envelope = decodeContentEnvelope(record.payload);
+  const envelope = decodeContentEnvelope(record.payload, record.content);
   const metadata = decodeMediaMetadata(record.payload, contentType);
   const body = projectMessageContent({
     content_type: contentType,
@@ -215,7 +215,10 @@ export function projectMessageRecord(
   };
 }
 
-function decodeContentEnvelope(payload: Uint8Array): MessagePayloadEnvelope | undefined {
+function decodeContentEnvelope(
+  payload: Uint8Array,
+  expectedContent: string,
+): MessagePayloadEnvelope | undefined {
   if (payload.length === 0) return undefined;
   if (payload[0] === 0x7b) {
     try {
@@ -226,7 +229,21 @@ function decodeContentEnvelope(payload: Uint8Array): MessagePayloadEnvelope | un
     }
   }
   try {
-    return decodeMessagePayloadEnvelope(payload);
+    const envelope = decodeMessagePayloadEnvelope(payload);
+    // FlatBuffers generated readers are not validators: arbitrary raw UTF-8
+    // can decode as an all-default table. Accept a binary envelope only when
+    // its body agrees with the normalized cache body or it contains a real
+    // structured field that the projection needs.
+    if (
+      envelope.content !== expectedContent &&
+      envelope.metadata === undefined &&
+      envelope.reply_to_message_id === undefined &&
+      envelope.mentioned_user_ids.length === 0 &&
+      envelope.message_source === undefined
+    ) {
+      return undefined;
+    }
+    return envelope;
   } catch {
     return undefined;
   }

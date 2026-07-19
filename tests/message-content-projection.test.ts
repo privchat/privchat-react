@@ -25,4 +25,17 @@ describe('message content projection', () => {
       '归一化后的正文',
     );
   });
+
+  it('renders a raw UTF-8 local echo immediately after send', () => {
+    const pending = {
+      ...record('刚发出的消息'),
+      server_message_id: undefined,
+      local_message_id: 'local-1',
+      payload: new TextEncoder().encode('刚发出的消息'),
+      status: 'pending' as const,
+    };
+    const vm = projectMessageRecord(pending, '3', undefined);
+    expect(vm.body).toMatchObject({ kind: 'text', text: '刚发出的消息' });
+    expect(vm.status).toBe('pending');
+  });
 });
