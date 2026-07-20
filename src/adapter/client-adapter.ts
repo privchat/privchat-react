@@ -94,6 +94,17 @@ export interface PrivchatClientAdapter {
   /** Send a text message. Returns `'sent'` (server ACK) or `'queued'` (offline outbox). */
   sendTextMessage(input: SendTextInput): Promise<SendTextOperationResult>;
 
+  /** Forward a cached message into another conversation as a fresh copy
+   *  (Rust `forward_message` parity). Throws on revoked / uncached sources. */
+  forwardMessage(input: {
+    source_channel_id: string;
+    source_channel_type: number;
+    source_server_message_id: string;
+    target_channel_id: string;
+    target_channel_type: number;
+    from_uid: string;
+  }): Promise<SendTextOperationResult>;
+
   /**
    * R2.2: get or create the direct (1-on-1) channel between the current
    * user and `target_user_id`. Idempotent — same target returns the

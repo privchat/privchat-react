@@ -86,6 +86,17 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     return this.client.sendTextMessage(input);
   }
 
+  forwardMessage(input: {
+    source_channel_id: string;
+    source_channel_type: number;
+    source_server_message_id: string;
+    target_channel_id: string;
+    target_channel_type: number;
+    from_uid: string;
+  }): Promise<SendTextOperationResult> {
+    return this.client.forwardMessage(input);
+  }
+
   channelDirectGetOrCreate(
     target_user_id: number,
     source?: string,
