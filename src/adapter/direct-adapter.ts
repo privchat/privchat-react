@@ -288,6 +288,14 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     );
   }
 
+  privacyGet(): Promise<Record<string, unknown>> {
+    return this.client.privacyGet() as unknown as Promise<Record<string, unknown>>;
+  }
+
+  privacyUpdate(patch: Record<string, unknown>): Promise<unknown> {
+    return this.client.privacyUpdate(patch);
+  }
+
   async pinChannel(channelId: string, pinned: boolean): Promise<unknown> {
     const r = await this.client.channelPin(channelId, pinned);
     // Mirror server state to local cache so observers fire and the UI

@@ -368,6 +368,12 @@ export interface PrivchatClientAdapter {
    *  current state — callers expose both Pin/Unpin actions for now. */
   pinChannel(channelId: string, pinned: boolean): Promise<unknown>;
 
+  /** 读取自己的隐私设置(「添加我的方式」等,PROFILE_VISIBILITY P2)。 */
+  privacyGet(): Promise<Record<string, unknown>>;
+
+  /** 更新自己的隐私设置(部分字段)。 */
+  privacyUpdate(patch: Record<string, unknown>): Promise<unknown>;
+
   /** Set a channel's mute state (per-user). Same caveat as pin. */
   muteChannel(channelId: string, muted: boolean): Promise<unknown>;
 
