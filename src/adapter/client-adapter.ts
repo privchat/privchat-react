@@ -280,13 +280,34 @@ export interface PrivchatClientAdapter {
     has_more_after: boolean;
   }>;
 
-  /** Send a friend request. `source` / `source_id` are analytics tags. */
+  /** Send a friend request. `source` / `source_id` identify the verified
+   *  origin; `grantId` forwards the user/detail view grant so the server
+   *  authorises on the detail-time verdict (PROFILE_VISIBILITY 2.5.1). */
   friendApply(
     targetUserId: number,
     message?: string,
     source?: string,
     sourceId?: string,
+    grantId?: string,
   ): Promise<FriendApplyResponse>;
+
+  /** Fetch a user's projected profile. Requires a verified source; the
+   *  response carries the server-computed can_add_friend / deny_reason /
+   *  grant_id capability bits (PROFILE_VISIBILITY 2.5). */
+  userDetail(req: {
+    target_user_id: number;
+    source: string;
+    source_id: string;
+  }): Promise<{
+    user_id: number;
+    username: string;
+    nickname?: string;
+    avatar_url?: string;
+    is_friend: boolean;
+    can_add_friend: boolean;
+    deny_reason?: string | null;
+    grant_id?: string;
+  }>;
 
   /** Accept an incoming friend request. */
   friendAccept(

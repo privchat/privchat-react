@@ -220,8 +220,13 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     message?: string,
     source?: string,
     sourceId?: string,
+    grantId?: string,
   ): Promise<FriendApplyResponse> {
-    return this.client.friendApply(targetUserId, message, source, sourceId);
+    return this.client.friendApply(targetUserId, message, source, sourceId, grantId);
+  }
+
+  userDetail(req: { target_user_id: number; source: string; source_id: string }) {
+    return this.client.userDetail(req);
   }
 
   friendAccept(
