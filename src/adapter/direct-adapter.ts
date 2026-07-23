@@ -485,6 +485,31 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
       'image',
       args.onProgress,
     );
+    // 与 Rust SDK 发送侧对齐：缩略图是独立 file（320px），接收端(App/Rust)气泡
+    // 只渲染缩略图，缺失会落成 thumb_status=3 的静态占位。生成/上传失败不阻断
+    // 发送——退回无缩略图消息（接收端有原图兜底）。
+    let thumb: { file_id: string; url?: string } | undefined;
+    try {
+      const thumbBlob = await makeImageThumbnail(args.file, 320);
+      if (thumbBlob !== undefined) {
+        const uploaded = await uploadOneFile(
+          this.client,
+          thumbBlob.blob,
+          'thumb.webp',
+          thumbBlob.mime,
+          'image',
+        );
+        thumb = { file_id: String(uploaded.file_id), url: uploaded.file_url };
+      }
+    } catch {
+      thumb = undefined;
+    }
+    // 小图(≤256KB)不值得独立缩略图时,直接把原图引用为缩略图——接收端(App)
+    // 气泡只渲染缩略图,没有这个引用会落成"图片"占位;大图失败则不引用,
+    // 避免接收端自动下载整张原图当缩略图。
+    if (thumb === undefined && args.file.size <= 256 * 1024) {
+      thumb = { file_id: String(result.file_id), url: result.file_url };
+    }
     return this.client.sendTextMessage(
       buildSendImageInput({
         channel_id: args.channel_id,
@@ -497,6 +522,8 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
           url: result.file_url,
           width: result.width ?? args.width,
           height: result.height ?? args.height,
+          thumbnail_file_id: thumb?.file_id,
+          thumbnail_url: thumb?.url,
         },
       }),
     );
@@ -680,6 +707,45 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
       user_id: resp.user_id !== undefined ? String(resp.user_id) : undefined,
       joined_at: resp.joined_at,
     };
+  }
+}
+
+/** 浏览器侧缩略图：长边压到 maxSide，webp(0.85) 优先、jpeg 兜底。
+ *  非浏览器环境（无 createImageBitmap/document）返回 undefined，由调用方
+ *  按"无缩略图"发送。压缩后不比原图小就没意义，也返回 undefined。 */
+async function makeImageThumbnail(
+  file: Blob,
+  maxSide: number,
+): Promise<{ blob: Blob; mime: string } | undefined> {
+  if (
+    typeof createImageBitmap !== 'function' ||
+    typeof document === 'undefined'
+  ) {
+    return undefined;
+  }
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (ctx === null) return undefined;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    const encode = (mime: string): Promise<Blob | null> =>
+      new Promise((resolve) => canvas.toBlob(resolve, mime, 0.85));
+    let mime = 'image/webp';
+    let blob = await encode(mime);
+    if (blob === null || blob.type !== 'image/webp') {
+      mime = 'image/jpeg';
+      blob = await encode(mime);
+    }
+    if (blob === null || blob.size >= file.size) return undefined;
+    return { blob, mime };
+  } finally {
+    bitmap.close();
   }
 }
 
