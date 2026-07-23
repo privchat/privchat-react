@@ -504,10 +504,10 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     } catch {
       thumb = undefined;
     }
-    // 小图(≤256KB)不值得独立缩略图时,直接把原图引用为缩略图——接收端(App)
-    // 气泡只渲染缩略图,没有这个引用会落成"图片"占位;大图失败则不引用,
-    // 避免接收端自动下载整张原图当缩略图。
-    if (thumb === undefined && args.file.size <= 256 * 1024) {
+    // 图片消息协议上必须带缩略图(server 校验拒绝无缩略图的 image)。生成/上传
+    // 失败或不值得独立缩略图(压不小)时,把原图引用为缩略图——接收端自动下载
+    // 原图当缩略图,代价可接受,绝不发出无缩略图的图片消息。
+    if (thumb === undefined) {
       thumb = { file_id: String(result.file_id), url: result.file_url };
     }
     return this.client.sendTextMessage(
