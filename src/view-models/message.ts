@@ -92,10 +92,15 @@ export type { ContentTypeName };
 
 export interface ImageMetadataVM {
   type: 'image';
+  /** 原图 file（全分辨率）。点开大图时按需加载这个。 */
   file_id: string;
   url?: string;
   width: number;
   height: number;
+  /** 缩略图独立 file（发送端 320px；App/Rust 气泡只渲染它，原图按需加载）。
+   *  缺失时接收端把原图当缩略图兜底。 */
+  thumbnail_file_id?: string;
+  thumbnail_url?: string;
 }
 
 export interface FileMetadataVM {
@@ -353,12 +358,17 @@ function decodeMediaMetadata(
     case 'image': {
       const fileId = coerceIdString(m.file_id);
       if (fileId === undefined) return undefined;
+      const thumbFileId = coerceIdString(m.thumbnail_file_id);
       return {
         type: 'image',
         file_id: fileId,
         url: typeof m.url === 'string' ? m.url : undefined,
         width: typeof m.width === 'number' ? m.width : 0,
         height: typeof m.height === 'number' ? m.height : 0,
+        // 只保留与原图不同的独立缩略图；缺失/等于原图时留空，由 UI 用原图兜底。
+        thumbnail_file_id:
+          thumbFileId !== undefined && thumbFileId !== fileId ? thumbFileId : undefined,
+        thumbnail_url: typeof m.thumbnail_url === 'string' && m.thumbnail_url !== '' ? m.thumbnail_url : undefined,
       };
     }
     case 'file': {
