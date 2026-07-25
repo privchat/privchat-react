@@ -397,8 +397,8 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     groupId: string,
     muted: boolean,
   ): Promise<import('@privchat/sdk').GroupMuteAllResponse> {
-    const operator = this.requireAuthenticatedUid('muteGroupAll');
-    return this.client.groupMuteAll(Number(groupId), operator, muted);
+    // operator 由 server 从鉴权会话取，不再从客户端传 operator_id。
+    return this.client.groupMuteAll(Number(groupId), muted);
   }
 
   groupApprovalList(
