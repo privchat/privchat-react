@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { BootstrapChannelsOptions, ChannelRecord } from '@privchat/sdk';
 import { usePrivchatClient } from './use-privchat-client.js';
+import { useConnectionState } from './use-connection-state.js';
 import {
   projectChannelRecord,
   sortConversations,
@@ -114,6 +115,24 @@ export function useChannelList(
       void cancelled;
     };
   }, [adapter, runBootstrap, skipAutoBootstrap, bootstrap]);
+
+  // Self-heal after a reconnect. Mount-time bootstrap is a one-shot: if the
+  // socket was down (server restart, sleep, flaky network) it failed and the
+  // error stuck around forever — the list stayed stale and the UI kept showing
+  // "cannot send in state closed" long after the connection came back. Re-run
+  // bootstrap whenever the session becomes authenticated again, which also
+  // clears the stale error (runBootstrap resets it).
+  const connectionState = useConnectionState();
+  const wasAuthenticated = useRef(false);
+  useEffect(() => {
+    const authed = connectionState === 'authenticated';
+    const recovered = authed && !wasAuthenticated.current;
+    wasAuthenticated.current = authed;
+    if (skipAutoBootstrap || !recovered) return;
+    runBootstrap(bootstrap).catch(() => {
+      // Already captured in `error` state.
+    });
+  }, [connectionState, runBootstrap, skipAutoBootstrap, bootstrap]);
 
   // ---- Project + sort ----
   //
