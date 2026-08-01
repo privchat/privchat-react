@@ -71,13 +71,14 @@ export interface GroupOps {
 
 export function useGroupOps(): GroupOps {
   const adapter = usePrivchatClient();
-  // P6-1C（CLIENT_GLOBAL_STATE §22，系统用户红线）：群成员 RPC 无 user_type，但带 username——
-  // 在此唯一入口按 username 过滤系统账号（"system"/"__system_1__"），令 h5/web 的成员列表、
-  // 九宫格输入、成员数（members.length）全部不含系统用户，与 App(GroupStore) 对齐。total 同步修正。
+  // P6-1C（CLIENT_GLOBAL_STATE §22，系统用户红线）：新协议按 user_type 过滤；
+  // username 仅保留为老 server 兼容，不能再承担身份类型语义。
   const listMembers = useCallback(
     (groupId: string) =>
       (adapter.listGroupMembers(groupId) as Promise<GroupMemberListResponse>).then((resp) => {
-        const members = resp.members.filter((m) => !isSystemUsername(m.username));
+        const members = resp.members.filter(
+          (m) => m.user_type !== 1 && !isSystemUsername(m.username),
+        );
         return members.length === resp.members.length
           ? resp
           : { ...resp, members, total: members.length };
