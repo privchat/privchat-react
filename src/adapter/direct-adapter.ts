@@ -13,6 +13,7 @@ import {
   uploadFileViaToken,
 } from '@privchat/sdk';
 import type {
+  UserDetailSource,
   AccountSearchResponse,
   BootstrapChannelsOptions,
   PresenceBatchStatusResponse,
@@ -225,7 +226,11 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     return this.client.friendApply(targetUserId, message, source, sourceId, grantId);
   }
 
-  userDetail(req: { target_user_id: number; source: string; source_id: string }) {
+  userDetail(req: {
+    target_user_id: number;
+    source: UserDetailSource;
+    source_id: string;
+  }) {
     return this.client.userDetail(req);
   }
 
@@ -321,8 +326,11 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     return r;
   }
 
-  listGroupMembers(groupId: string): Promise<unknown> {
-    return this.client.groupMemberList(Number(groupId));
+  listGroupMembers(
+    groupId: string,
+    page?: { limit?: number; offset?: number },
+  ): Promise<unknown> {
+    return this.client.groupMemberList(Number(groupId), page);
   }
 
   leaveGroup(groupId: string): Promise<unknown> {

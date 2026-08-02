@@ -344,7 +344,9 @@ describe('useGroupOps', () => {
         member(5, 'typed-system'),
         member(4, 'bob'),
       ],
-      total: 4,
+      // total = 群总人数，必须和未分页时返回的条数一致。原来写 4 却给了 5 条，
+      // 自相矛盾——过滤逻辑要从 total 里扣掉系统账号，fixture 先得自洽。
+      total: 5,
     } satisfies GroupMemberListResponse);
     const adapter = createMockAdapter({ listGroupMembers });
     const { result } = renderHookWithAdapter(() => useGroupOps(), adapter);
@@ -352,5 +354,30 @@ describe('useGroupOps', () => {
     const resp = await result.current.listMembers('9');
     expect(resp.members.map((m) => m.username)).toEqual(['alice', 'bob']);
     expect(resp.total).toBe(2);
+  });
+
+  it('keeps the whole-group total when only a page was fetched', async () => {
+    // 九宫格只拉 9 条，但 UI 仍要显示「成员 (750)」——total 绝不能被改写成本页条数。
+    const member = (userId: number, username: string) => ({
+      user_id: userId,
+      username,
+      nickname: `n${userId}`,
+      display_name: `n${userId}`,
+      user_type: username === 'system' ? 1 : 0,
+      role: 'member',
+      joined_at: 0,
+      is_muted: false,
+    });
+    const listGroupMembers = vi.fn().mockResolvedValue({
+      members: [member(1, 'system'), member(2, 'alice')],
+      total: 750,
+    } satisfies GroupMemberListResponse);
+    const adapter = createMockAdapter({ listGroupMembers });
+    const { result } = renderHookWithAdapter(() => useGroupOps(), adapter);
+
+    const resp = await result.current.listMembers('9', { limit: 2 });
+    expect(listGroupMembers).toHaveBeenCalledWith('9', { limit: 2 });
+    expect(resp.members.map((m) => m.username)).toEqual(['alice']);
+    expect(resp.total).toBe(749); // 750 减掉本页过滤掉的 1 个系统账号
   });
 });

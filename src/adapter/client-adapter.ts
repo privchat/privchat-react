@@ -15,6 +15,7 @@
 // methods when a hook requires them.
 
 import type {
+  UserDetailSource,
   AccountSearchResponse,
   BootstrapChannelsOptions,
   ChannelRecord,
@@ -296,7 +297,9 @@ export interface PrivchatClientAdapter {
    *  grant_id capability bits (PROFILE_VISIBILITY 2.5). */
   userDetail(req: {
     target_user_id: number;
-    source: string;
+    // 与 SDK 的 UserDetailSource 联合类型对齐。用 `string` 会让「随手编一个
+    // source」在编译期通过——而服务端按 source 做可见性闸口，编错了是 403。
+    source: UserDetailSource;
     source_id: string;
   }): Promise<{
     user_id: number;
@@ -407,7 +410,12 @@ export interface PrivchatClientAdapter {
   /** Pull the member roster for a group. Server returns `{ members,
    *  total }`; SDK leaves the response as-is (no local cache for group
    *  members yet — call from a dialog when needed). */
-  listGroupMembers(groupId: string): Promise<unknown>;
+  /** `page.limit` 只取前 N 个（按入群时间升序）。九宫格头像只要 9 个人——
+   *  不带 limit 就是整份花名册，750 人群 126 KB。见 CHANNEL_SPEC §9.2.2。 */
+  listGroupMembers(
+    groupId: string,
+    page?: { limit?: number; offset?: number },
+  ): Promise<unknown>;
 
   /** Leave a group. Server tombstones the membership row + drops the
    *  channel from the user's channel list (entity sync handles cache

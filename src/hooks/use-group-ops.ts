@@ -19,7 +19,12 @@ import { usePrivchatClient } from './use-privchat-client.js';
 import { isSystemUsername } from '../view-models/conversation-title.js';
 
 export interface GroupOps {
-  listMembers: (groupId: string) => Promise<GroupMemberListResponse>;
+  /** 不传 page = 全量（成员列表页）。九宫格这类只需要前几个的调用方
+   *  MUST 传 `page.limit`，见 CHANNEL_SPEC §9.2.2。 */
+  listMembers: (
+    groupId: string,
+    page?: { limit?: number; offset?: number },
+  ) => Promise<GroupMemberListResponse>;
   leaveGroup: (groupId: string) => Promise<unknown>;
   addMember: (groupId: string, userId: string, role?: string) => Promise<unknown>;
   removeMember: (groupId: string, userId: string) => Promise<unknown>;
@@ -74,14 +79,22 @@ export function useGroupOps(): GroupOps {
   // P6-1C（CLIENT_GLOBAL_STATE §22，系统用户红线）：新协议按 user_type 过滤；
   // username 仅保留为老 server 兼容，不能再承担身份类型语义。
   const listMembers = useCallback(
-    (groupId: string) =>
-      (adapter.listGroupMembers(groupId) as Promise<GroupMemberListResponse>).then((resp) => {
+    (groupId: string, page?: { limit?: number; offset?: number }) =>
+      // 不传 page 时保持原来的调用形态（单参数），别给既有 adapter 实现塞一个
+      // 多余的 undefined。
+      ((page === undefined
+        ? adapter.listGroupMembers(groupId)
+        : adapter.listGroupMembers(groupId, page)) as Promise<GroupMemberListResponse>).then((resp) => {
         const members = resp.members.filter(
           (m) => m.user_type !== 1 && !isSystemUsername(m.username),
         );
-        return members.length === resp.members.length
+        // total 是**群总人数**（服务端不随分页变化）。过滤掉几个系统账号就从
+        // total 里减几个——绝不能改写成 `members.length`：分页后那是本页条数，
+        // 750 人的群会显示成「成员 (9)」。
+        const filtered = resp.members.length - members.length;
+        return filtered === 0
           ? resp
-          : { ...resp, members, total: members.length };
+          : { ...resp, members, total: Math.max(0, resp.total - filtered) };
       }),
     [adapter],
   );
