@@ -410,6 +410,10 @@ export interface PrivchatClientAdapter {
   /** Pull the member roster for a group. Server returns `{ members,
    *  total }`; SDK leaves the response as-is (no local cache for group
    *  members yet — call from a dialog when needed). */
+  /** 增量同步一个群的成员（`entity/sync_entities`，按版本水位只取变更）。
+   *  与 App 的 `syncGroupMembers` 同名同义。 */
+  syncGroupMembers(groupId: string): Promise<number>;
+
   /** 读**本地**已缓存的成员（先渲染、后刷新，与 App 同一形状）。
    *  纯本地：没缓存过就返回空数组，不会退回去发网络请求。 */
   cachedGroupMembers(

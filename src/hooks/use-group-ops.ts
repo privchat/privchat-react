@@ -25,6 +25,9 @@ export interface GroupOps {
    *  「我能不能管理这个群」不许靠拉整份花名册在里面找自己
    *  （750 人 = 126 KB，会话列表里每个大群都要判一次）。见 CHANNEL_SPEC §9.2.2。 */
   groupInfo: (groupId: string) => Promise<GroupInfoResponse>;
+  /** 增量同步本群成员：只取变更，退群的人由服务端 tombstone 通知。
+   *  与 [cachedMembers] 配合就是 App 的三段式：读本地 → 增量同步 → 再读本地。 */
+  syncMembers: (groupId: string) => Promise<number>;
   /** 读本地已缓存的成员：打开成员页时先拿它渲染，再让 [listMembers] 刷新。
    *  与 App 的两段式一致（App 一直是"读本地 → 同步 → 再读本地"）。
    *  系统账号在这里同样被滤掉，口径与 [listMembers] 一致。 */
@@ -115,6 +118,10 @@ export function useGroupOps(): GroupOps {
     (groupId: string) => adapter.groupInfo(groupId) as Promise<GroupInfoResponse>,
     [adapter],
   );
+  const syncMembers = useCallback(
+    (groupId: string) => adapter.syncGroupMembers(groupId),
+    [adapter],
+  );
   const cachedMembers = useCallback(
     (groupId: string, page?: { limit?: number; offset?: number }) =>
       (adapter.cachedGroupMembers(groupId, page) as Promise<GroupMember[]>).then(
@@ -181,6 +188,7 @@ export function useGroupOps(): GroupOps {
   return useMemo(
     () => ({
       groupInfo,
+      syncMembers,
       cachedMembers,
       listMembers,
       leaveGroup,
@@ -198,6 +206,7 @@ export function useGroupOps(): GroupOps {
     }),
     [
       groupInfo,
+      syncMembers,
       cachedMembers,
       listMembers,
       leaveGroup,
