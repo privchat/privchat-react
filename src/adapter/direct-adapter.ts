@@ -326,6 +326,10 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     return r;
   }
 
+  groupInfo(groupId: string): Promise<unknown> {
+    return this.client.groupInfo(Number(groupId));
+  }
+
   listGroupMembers(
     groupId: string,
     page?: { limit?: number; offset?: number },

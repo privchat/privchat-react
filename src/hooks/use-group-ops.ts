@@ -5,6 +5,7 @@
 
 import { useCallback, useMemo } from 'react';
 import type {
+  GroupInfoResponse,
   GroupMemberListResponse,
   GroupMuteAllResponse,
   GroupRoleSetResponse,
@@ -19,6 +20,10 @@ import { usePrivchatClient } from './use-privchat-client.js';
 import { isSystemUsername } from '../view-models/conversation-title.js';
 
 export interface GroupOps {
+  /** 群资料 + 请求者自己的角色 + 管理员 uid。**权限判定走这里**：
+   *  「我能不能管理这个群」不许靠拉整份花名册在里面找自己
+   *  （750 人 = 126 KB，会话列表里每个大群都要判一次）。见 CHANNEL_SPEC §9.2.2。 */
+  groupInfo: (groupId: string) => Promise<GroupInfoResponse>;
   /** 不传 page = 全量（成员列表页）。九宫格这类只需要前几个的调用方
    *  MUST 传 `page.limit`，见 CHANNEL_SPEC §9.2.2。 */
   listMembers: (
@@ -98,6 +103,10 @@ export function useGroupOps(): GroupOps {
       }),
     [adapter],
   );
+  const groupInfo = useCallback(
+    (groupId: string) => adapter.groupInfo(groupId) as Promise<GroupInfoResponse>,
+    [adapter],
+  );
   const leaveGroup = useCallback(
     (groupId: string) => adapter.leaveGroup(groupId),
     [adapter],
@@ -156,6 +165,7 @@ export function useGroupOps(): GroupOps {
   );
   return useMemo(
     () => ({
+      groupInfo,
       listMembers,
       leaveGroup,
       addMember,
@@ -171,6 +181,7 @@ export function useGroupOps(): GroupOps {
       pinnedMessages,
     }),
     [
+      groupInfo,
       listMembers,
       leaveGroup,
       addMember,

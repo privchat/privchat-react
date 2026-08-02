@@ -412,6 +412,10 @@ export interface PrivchatClientAdapter {
    *  members yet — call from a dialog when needed). */
   /** `page.limit` 只取前 N 个（按入群时间升序）。九宫格头像只要 9 个人——
    *  不带 limit 就是整份花名册，750 人群 126 KB。见 CHANNEL_SPEC §9.2.2。 */
+  /** 群资料 + **请求者自己的角色**（`my_role`）+ 管理员 uid。都是有界字段，
+   *  权限判定走这里，不要为了「我能不能管理」去拉整份花名册（CHANNEL_SPEC §9.2.2）。 */
+  groupInfo(groupId: string): Promise<unknown>;
+
   listGroupMembers(
     groupId: string,
     page?: { limit?: number; offset?: number },
