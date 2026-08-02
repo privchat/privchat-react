@@ -410,6 +410,13 @@ export interface PrivchatClientAdapter {
   /** Pull the member roster for a group. Server returns `{ members,
    *  total }`; SDK leaves the response as-is (no local cache for group
    *  members yet — call from a dialog when needed). */
+  /** 读**本地**已缓存的成员（先渲染、后刷新，与 App 同一形状）。
+   *  纯本地：没缓存过就返回空数组，不会退回去发网络请求。 */
+  cachedGroupMembers(
+    groupId: string,
+    page?: { limit?: number; offset?: number },
+  ): Promise<unknown>;
+
   /** `page.limit` 只取前 N 个（按入群时间升序）。九宫格头像只要 9 个人——
    *  不带 limit 就是整份花名册，750 人群 126 KB。见 CHANNEL_SPEC §9.2.2。 */
   /** 群资料 + **请求者自己的角色**（`my_role`）+ 管理员 uid。都是有界字段，

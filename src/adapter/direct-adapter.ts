@@ -330,6 +330,13 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     return this.client.groupInfo(Number(groupId));
   }
 
+  cachedGroupMembers(
+    groupId: string,
+    page?: { limit?: number; offset?: number },
+  ): Promise<unknown> {
+    return this.client.cachedGroupMembers(Number(groupId), page);
+  }
+
   listGroupMembers(
     groupId: string,
     page?: { limit?: number; offset?: number },
