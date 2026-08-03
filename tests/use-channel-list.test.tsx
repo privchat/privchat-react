@@ -379,10 +379,31 @@ describe('useChannelList (R1.1)', () => {
     ]);
   });
 
+  it('leaves a DM that never carried a message out of the list', () => {
+    // 现场报为「聊天记录没加载出来」：列表顶部一整片没有预览的 DM。它们是好友申请
+    // 通过时建出来的会话，服务端一条消息都没有（spec MESSAGE_HISTORY §16）。
+    const adapter = new MockAdapter();
+    adapter.seed([
+      makeChannel({ channel_id: 'dm-with-history', channel_type: 1, updated_at: 500 }),
+      makeChannel({ channel_id: 'dm-empty', channel_type: 1, updated_at: 0 }),
+      // 没人说过话的群仍然要有入口。
+      makeChannel({ channel_id: 'group-empty', channel_type: 2, updated_at: 0 }),
+    ]);
+    const { result } = renderHook(() => useChannelList({ skipAutoBootstrap: true }), {
+      wrapper: wrapper(adapter),
+    });
+    const ids = result.current.records.map((r) => r.channel_id);
+    expect(ids).toContain('dm-with-history');
+    expect(ids).not.toContain('dm-empty');
+    expect(ids).toContain('group-empty');
+  });
+
   it('falls back to default title when ChannelRecord.title is missing', () => {
     const adapter = new MockAdapter();
     adapter.seed([
-      makeChannel({ channel_id: '11', channel_type: 1 }),
+      // DM 必须带一个真实的最后消息时间，否则按 §16 它根本不进列表
+      // （这条用例测的是标题回退，不是列表语义）。
+      makeChannel({ channel_id: '11', channel_type: 1, updated_at: 100 }),
       makeChannel({ channel_id: '22', channel_type: 2 }),
       makeChannel({ channel_id: '33', channel_type: 9, title: 'Custom' }),
     ]);

@@ -141,9 +141,21 @@ export function useChannelList(
   // Doing it this way avoids tracking ids twice.
 
   const sortedRecords = useMemo(() => {
-    const projected = records.map(projectChannelRecord);
+    // 零消息 DM 不进会话列表（spec MESSAGE_HISTORY §16）。
+    //
+    // 好友申请通过时 ensureDirectChannel 会建出 DM，它可能一条消息都没有——服务端
+    // 也是空的，请求多少次 history 都返回空。好友关系体现在联系人列表，不该占会话
+    // 列表的位置；从联系人点进去仍然能打开这个空聊天页，所以过滤只能放在**列表投影**
+    // 这一层，不能下沉到 `cachedChannels()`：那个方法同时被 use-conversation 当作
+    // 「按 id 查会话」用，过滤下去就会把「从联系人打开空会话」一起打断。
+    //
+    // 判据是 `updated_at`（服务端 `last_msg_timestamp`，没有消息时为 0），不是「本地
+    // 有没有缓存到消息」——历史还没拉下来的会话必须留在列表里。
+    // 群不适用：刚被拉进的群还没人说话，藏掉就等于没有入口。
+    const listable = records.filter((r) => r.channel_type !== 1 || r.updated_at > 0);
+    const projected = listable.map(projectChannelRecord);
     const sortedProjections = sortConversations(projected);
-    const recordById = new Map(records.map((r) => [`${r.channel_id}:${r.channel_type}`, r]));
+    const recordById = new Map(listable.map((r) => [`${r.channel_id}:${r.channel_type}`, r]));
     return sortedProjections.map((vm) => recordById.get(vm.id)!).filter((r) => r !== undefined);
   }, [records]);
 
