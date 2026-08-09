@@ -38,6 +38,7 @@ import type {
   SessionSnapshot,
   UserRecord,
 } from '@privchat/sdk';
+import { sealAttachment } from '@privchat/sdk';
 import type { PrivchatClientAdapter, Unsubscribe } from './client-adapter.js';
 
 export class DirectClientAdapter implements PrivchatClientAdapter {
@@ -783,15 +784,27 @@ async function uploadOneFile(
   file_type: 'image' | 'voice' | 'video' | 'file' | 'other',
   onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void,
 ) {
+  // 🔴 顺序：**先封装**（压缩/转码已在更上层完成），对**封装结果**求摘要，
+  // 再拿这个摘要去预检。加密用随机 CEK/nonce，预检之后重新加密字节就变了，
+  // 命中率恒为 0；重试也必须复用这同一个 blob。
+  const sealed = await sealAttachment(new Uint8Array(await file.arrayBuffer()));
   const token = await client.fileRequestUploadToken({
-    file_size: file.size,
+    // 报的是**封装后**的字节数，与摘要同一口径。
+    file_size: sealed.blob.byteLength,
     mime_type,
     file_type,
     business_type: 'message',
     filename,
+    sha256: sealed.sha256,
   });
+
+  if (token.already_exists === true) {
+    // 服务端已经有这串字节：一个字节都不传，换一个属于自己的 file_id。
+    return client.fileClaimExisting({ token: token.token, sha256: sealed.sha256 });
+  }
+
   return uploadFileViaToken({
-    file,
+    sealed,
     filename,
     uploadUrl: token.upload_url,
     token: token.token,
