@@ -10,7 +10,7 @@ import {
   buildSendFileInput,
   buildSendImageInput,
   buildSendVideoInput,
-  uploadFileViaToken,
+  uploadSealedFileViaToken,
 } from '@privchat/sdk';
 import type {
   UserDetailSource,
@@ -803,7 +803,7 @@ async function uploadOneFile(
     return client.fileClaimExisting({ token: token.token, sha256: sealed.sha256 });
   }
 
-  return uploadFileViaToken({
+  return uploadSealedFileViaToken({
     sealed,
     filename,
     uploadUrl: token.upload_url,
