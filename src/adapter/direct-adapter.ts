@@ -38,7 +38,7 @@ import type {
   SessionSnapshot,
   UserRecord,
 } from '@privchat/sdk';
-import { sealAttachment } from '@privchat/sdk';
+import { RpcError, sealAttachment } from '@privchat/sdk';
 import type { PrivchatClientAdapter, Unsubscribe } from './client-adapter.js';
 
 export class DirectClientAdapter implements PrivchatClientAdapter {
@@ -86,6 +86,17 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
 
   sendTextMessage(input: SendTextInput): Promise<SendTextOperationResult> {
     return this.client.sendTextMessage(input);
+  }
+
+  forwardMessage(input: {
+    source_channel_id: string;
+    source_channel_type: number;
+    source_server_message_id: string;
+    target_channel_id: string;
+    target_channel_type: number;
+    from_uid: string;
+  }): Promise<SendTextOperationResult> {
+    return this.client.forwardMessage(input);
   }
 
   channelDirectGetOrCreate(
@@ -770,11 +781,14 @@ async function makeImageThumbnail(
  *  服务端把「没有这份内容」和「有但你无权」说成同一句话（否则这个接口就是文件
  *  存在性探测器），两者都落在这里；退回整传对两者都对：真无权的人传自己的字节，
  *  本来就该被允许。 */
-function claimMissShouldReupload(e: unknown): boolean {
-  const code = (e as { code?: unknown } | null)?.code;
-  // ResourceNotFound（10201）：ServerError::NotFound 的协议码。
-  return code === 10201;
+export function claimMissShouldReupload(e: unknown): boolean {
+  // 🔴 码在 `response.code` 上，不是 `e.code`。读错位置的话这里恒为 false，
+  // 回退形同虚设——claim 一 miss，整条附件发送就失败了。
+  return e instanceof RpcError && e.response.code === RESOURCE_NOT_FOUND;
 }
+
+/** `ServerError::NotFound` 的协议码。 */
+const RESOURCE_NOT_FOUND = 10201;
 
 async function uploadOneFile(
   client: PrivchatClient,
