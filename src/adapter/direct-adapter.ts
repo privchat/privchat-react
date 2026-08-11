@@ -88,17 +88,6 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     return this.client.sendTextMessage(input);
   }
 
-  forwardMessage(input: {
-    source_channel_id: string;
-    source_channel_type: number;
-    source_server_message_id: string;
-    target_channel_id: string;
-    target_channel_type: number;
-    from_uid: string;
-  }): Promise<SendTextOperationResult> {
-    return this.client.forwardMessage(input);
-  }
-
   channelDirectGetOrCreate(
     target_user_id: number,
     source?: string,
@@ -776,6 +765,17 @@ async function makeImageThumbnail(
 /** Two-step upload: request token → multipart POST. Pulled out of the
  *  per-content-type adapter methods so they only differ in the message
  *  envelope, not in the upload plumbing. */
+/** claim 失败是不是「服务端拿不到那份内容」这一种——只有它该退回整传。
+ *
+ *  服务端把「没有这份内容」和「有但你无权」说成同一句话（否则这个接口就是文件
+ *  存在性探测器），两者都落在这里；退回整传对两者都对：真无权的人传自己的字节，
+ *  本来就该被允许。 */
+function claimMissShouldReupload(e: unknown): boolean {
+  const code = (e as { code?: unknown } | null)?.code;
+  // ResourceNotFound（10201）：ServerError::NotFound 的协议码。
+  return code === 10201;
+}
+
 async function uploadOneFile(
   client: PrivchatClient,
   file: Blob,
@@ -798,16 +798,40 @@ async function uploadOneFile(
     sha256: sealed.sha256,
   });
 
+  let uploadToken = token;
   if (token.already_exists === true) {
     // 服务端已经有这串字节：一个字节都不传，换一个属于自己的 file_id。
-    return client.fileClaimExisting({ token: token.token, sha256: sealed.sha256 });
+    try {
+      return await client.fileClaimExisting({ token: token.token, sha256: sealed.sha256 });
+    } catch (e) {
+      // 🔴 秒传没成 → **照常上传**，不是发送失败。
+      //
+      // 预检说「有」、claim 却拿不到，是会正常发生的：那份内容的记录里没有一条
+      // 是这个人现在读得到的，或者候选在这中间失效了。服务端把它和「根本没有」
+      // 说成同一句话（否则接口会变成文件存在性探测器），客户端只能凭这个信号
+      // 退回整传。
+      //
+      // 只有这一种退回。参数错、真无权、瞬时竞争各有各的处理，一并当成「传一遍」
+      // 会把真问题盖掉，还白传一遍字节。
+      if (!claimMissShouldReupload(e)) throw e;
+      // 用**同一个已封装好的 blob** 重新要一张普通 token：重新封装会产出另一串
+      // 字节，白白让服务端多存一份。
+      uploadToken = await client.fileRequestUploadToken({
+        file_size: sealed.blob.byteLength,
+        mime_type,
+        file_type,
+        business_type: 'message',
+        filename,
+        // 不带摘要：这一次就是要传字节，不要再进秒传分支。
+      });
+    }
   }
 
   return uploadSealedFileViaToken({
     sealed,
     filename,
-    uploadUrl: token.upload_url,
-    token: token.token,
+    uploadUrl: uploadToken.upload_url,
+    token: uploadToken.token,
     onProgress,
   });
 }
