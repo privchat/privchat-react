@@ -665,6 +665,10 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     };
   }
 
+  async downloadAttachmentDetailed(fileId: string) {
+    return this.client.downloadAttachmentDetailed(Number(fileId));
+  }
+
   async downloadAttachmentBlob(fileId: string): Promise<Blob> {
     return this.client.downloadAttachmentBlob(Number(fileId));
   }

@@ -623,6 +623,20 @@ export interface PrivchatClientAdapter {
   /** 附件加密 v1 下载：`file_id -> file/get_url -> signed_url + cek` → fetch 密文 →
    *  WebCrypto 解密 → 明文 `Blob`。UI 用 `URL.createObjectURL(blob)` 预览/下载，
    *  不能 `img.src = file_url`（v1 是密文）。CEK 不进 URL/日志。 */
+  /** 下载一份附件，连同**服务端存的密文**和它的权威元数据一起拿回来。
+   *
+   * 🔴 `sealed` 与「转发」无关：它是这份内容当前的封装结果。把它交给普通发送
+   * （`sendImage/sendVideo/sendFile` 的 `sealed` 参数）就能秒传；只取明文会导致
+   * 发送侧重新封装，摘要一变秒传恒不命中。 */
+  downloadAttachmentDetailed(fileId: string): Promise<{
+    blob: Blob;
+    sealed?: { blob: Blob; cek: string; sha256: string };
+    originalFilename?: string;
+    mimeType?: string;
+    fileType?: 'image' | 'video' | 'voice' | 'file' | 'other';
+  }>;
+
+  /** [downloadAttachmentDetailed] 的兼容包装，只取明文。 */
   downloadAttachmentBlob(fileId: string): Promise<Blob>;
 
   // ----- QR Code v1.3 (per QR_CODE_SPEC v1.3) -----
