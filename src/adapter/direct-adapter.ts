@@ -487,6 +487,9 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     height: number;
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
+    /** 这份内容已经封装好的密文（`downloadAttachmentDetailed` 给的）。
+     *  有它就跳过重新封装，直接进预检——否则秒传恒不命中。 */
+    sealed?: { blob: Blob; cek: string; sha256: string };
   }): Promise<SendTextOperationResult> {
     const fromUid = this.client.sessionSnapshot().user_id;
     if (fromUid === undefined) throw new Error('not authenticated');
@@ -497,6 +500,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
       args.mime_type,
       'image',
       args.onProgress,
+      args.sealed,
     );
     // 与 Rust SDK 发送侧对齐：缩略图是独立 file（320px），接收端(App/Rust)气泡
     // 只渲染缩略图，缺失会落成 thumb_status=3 的静态占位。生成/上传失败不阻断
@@ -551,6 +555,9 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     local_message_id?: string;
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
+    /** 这份内容已经封装好的密文（`downloadAttachmentDetailed` 给的）。
+     *  有它就跳过重新封装，直接进预检——否则秒传恒不命中。 */
+    sealed?: { blob: Blob; cek: string; sha256: string };
   }): Promise<SendTextOperationResult> {
     const fromUid = this.client.sessionSnapshot().user_id;
     if (fromUid === undefined) throw new Error('not authenticated');
@@ -561,6 +568,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
       args.mime_type,
       'file',
       args.onProgress,
+      args.sealed,
     );
     const sendResult = await this.client.sendTextMessage(
       buildSendFileInput({
@@ -594,6 +602,9 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     thumbnail_url?: string;
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
+    /** 这份内容已经封装好的密文（`downloadAttachmentDetailed` 给的）。
+     *  有它就跳过重新封装，直接进预检——否则秒传恒不命中。 */
+    sealed?: { blob: Blob; cek: string; sha256: string };
   }): Promise<SendTextOperationResult> {
     const fromUid = this.client.sessionSnapshot().user_id;
     if (fromUid === undefined) throw new Error('not authenticated');
@@ -606,6 +617,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
       args.mime_type,
       'video',
       args.onProgress,
+      args.sealed,
     );
     return this.client.sendTextMessage(
       buildSendVideoInput({
@@ -786,11 +798,23 @@ async function uploadOneFile(
   mime_type: string,
   file_type: 'image' | 'voice' | 'video' | 'file' | 'other',
   onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void,
+  /** 这份内容**已经封装好的密文**（下载时服务端给的那串，已核对摘要）。
+   *
+   * 🔴 有它就不要再封装：加密用随机 CEK/nonce，重新封装必然产出另一串字节，
+   * 摘要一变预检就不可能命中——「再发一次同一份内容」于是每次都整传。
+   * 这不是转发专用参数，它就是这份内容当前的封装结果。 */
+  presealed?: { blob: Blob; cek: string; sha256: string },
 ) {
   // 🔴 顺序：**先封装**（压缩/转码已在更上层完成），对**封装结果**求摘要，
   // 再拿这个摘要去预检。加密用随机 CEK/nonce，预检之后重新加密字节就变了，
   // 命中率恒为 0；重试也必须复用这同一个 blob。
-  const sealed = await sealAttachment(new Uint8Array(await file.arrayBuffer()));
+  const sealed = presealed !== undefined
+    ? {
+        blob: new Uint8Array(await presealed.blob.arrayBuffer()),
+        cek: presealed.cek,
+        sha256: presealed.sha256,
+      }
+    : await sealAttachment(new Uint8Array(await file.arrayBuffer()));
   const token = await client.fileRequestUploadToken({
     // 报的是**封装后**的字节数，与摘要同一口径。
     file_size: sealed.blob.byteLength,

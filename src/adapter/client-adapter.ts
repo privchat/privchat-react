@@ -471,6 +471,8 @@ export interface PrivchatClientAdapter {
     height: number;
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
+    /** 已封装的密文：再发一次同一份内容时跳过重新封装，否则秒传不可能命中。 */
+    sealed?: { blob: Blob; cek: string; sha256: string };
   }): Promise<SendTextOperationResult>;
 
   /** End-to-end generic file upload + send. */
@@ -483,6 +485,8 @@ export interface PrivchatClientAdapter {
     local_message_id?: string;
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
+    /** 已封装的密文：再发一次同一份内容时跳过重新封装，否则秒传不可能命中。 */
+    sealed?: { blob: Blob; cek: string; sha256: string };
   }): Promise<SendTextOperationResult>;
 
   /** End-to-end video upload + send. `width`/`height`/`duration` are
@@ -503,6 +507,8 @@ export interface PrivchatClientAdapter {
     thumbnail_url?: string;
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
+    /** 已封装的密文：再发一次同一份内容时跳过重新封装，否则秒传不可能命中。 */
+    sealed?: { blob: Blob; cek: string; sha256: string };
   }): Promise<SendTextOperationResult>;
 
   // ----- Group role management -----
