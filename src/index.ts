@@ -194,3 +194,5 @@ export {
   type GroupListI18n,
   type GroupListItemVM,
 } from './view-models/group-list.js';
+
+export { resendMessageTo } from './resend-message.js';
