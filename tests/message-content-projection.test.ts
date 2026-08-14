@@ -3,6 +3,7 @@ import type { MessageRecord } from '@privchat/sdk';
 import { projectMessageRecord } from '../src/index.js';
 
 const record = (content: string): MessageRecord => ({
+  id: 'm-1',
   server_message_id: '1',
   channel_id: '2',
   channel_type: 1,

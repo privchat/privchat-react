@@ -19,6 +19,7 @@ import type { MessageRecord } from '@privchat/sdk';
 import { projectMessageRecord } from '../src/index.js';
 
 const r = (message_type: string): MessageRecord => ({
+  id: 'm-test',
   server_message_id: 'sid-1',
   local_message_id: undefined,
   channel_id: '100',

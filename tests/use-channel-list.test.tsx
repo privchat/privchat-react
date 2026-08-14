@@ -312,6 +312,42 @@ class MockAdapter implements PrivchatClientAdapter {
     this.channels = [...channels];
     for (const cb of this.listeners) cb(this.channels);
   }
+
+  // ---- Interface drift stubs (adapter surface grew; these hooks under
+  // test never call them — reject loudly if one ever does) ----
+  cachedGroupMembers(): Promise<unknown> {
+    return Promise.reject(new Error('not stubbed'));
+  }
+  downloadAttachmentDetailed(): ReturnType<PrivchatClientAdapter['downloadAttachmentDetailed']> {
+    return Promise.reject(new Error('not stubbed'));
+  }
+  groupApprovalHandle(): ReturnType<PrivchatClientAdapter['groupApprovalHandle']> {
+    return Promise.reject(new Error('not stubbed'));
+  }
+  groupApprovalList(): ReturnType<PrivchatClientAdapter['groupApprovalList']> {
+    return Promise.reject(new Error('not stubbed'));
+  }
+  groupInfo(): Promise<unknown> {
+    return Promise.reject(new Error('not stubbed'));
+  }
+  jumpToMessageContext(): ReturnType<PrivchatClientAdapter['jumpToMessageContext']> {
+    return Promise.reject(new Error('not stubbed'));
+  }
+  messageHistorySearch(): ReturnType<PrivchatClientAdapter['messageHistorySearch']> {
+    return Promise.reject(new Error('not stubbed'));
+  }
+  privacyGet(): Promise<Record<string, unknown>> {
+    return Promise.reject(new Error('not stubbed'));
+  }
+  privacyUpdate(): Promise<unknown> {
+    return Promise.reject(new Error('not stubbed'));
+  }
+  syncGroupMembers(): Promise<number> {
+    return Promise.reject(new Error('not stubbed'));
+  }
+  userDetail(): ReturnType<PrivchatClientAdapter['userDetail']> {
+    return Promise.reject(new Error('not stubbed'));
+  }
 }
 
 function makeChannel(partial: Partial<ChannelRecord>): ChannelRecord {

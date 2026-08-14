@@ -15,6 +15,7 @@ const enc = (obj: unknown): Uint8Array =>
   new TextEncoder().encode(JSON.stringify(obj));
 
 const r = (overrides: Partial<MessageRecord> = {}): MessageRecord => ({
+  id: 'm-test',
   server_message_id: 'sid-1',
   local_message_id: undefined,
   channel_id: '100',

@@ -62,6 +62,18 @@ export function createMockAdapter(
   overrides: Partial<PrivchatClientAdapter> = {},
 ): PrivchatClientAdapter {
   const base: PrivchatClientAdapter = {
+    // ---- Interface drift stubs (surface grew; reject loud if called) ----
+    cachedGroupMembers: () => Promise.reject(new Error('not stubbed')),
+    downloadAttachmentDetailed: () => Promise.reject(new Error('not stubbed')),
+    groupApprovalHandle: () => Promise.reject(new Error('not stubbed')),
+    groupApprovalList: () => Promise.reject(new Error('not stubbed')),
+    groupInfo: () => Promise.reject(new Error('not stubbed')),
+    jumpToMessageContext: () => Promise.reject(new Error('not stubbed')),
+    messageHistorySearch: () => Promise.reject(new Error('not stubbed')),
+    privacyGet: () => Promise.reject(new Error('not stubbed')),
+    privacyUpdate: () => Promise.reject(new Error('not stubbed')),
+    syncGroupMembers: () => Promise.reject(new Error('not stubbed')),
+    userDetail: () => Promise.reject(new Error('not stubbed')),
     // ---- R0 connection / events ----
     connectionState(): ConnectionState {
       return 'authenticated';

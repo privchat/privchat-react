@@ -14,6 +14,7 @@ import { projectMessageRecord } from '../src/index.js';
 const BIG_ID = '581782206540812288'; // 18 digits, > 2^53
 
 const record = (payloadJson: string, message_type = 'text'): MessageRecord => ({
+  id: 'm-test',
   server_message_id: 'sid-1',
   local_message_id: undefined,
   channel_id: '100',

@@ -123,7 +123,11 @@ export function useChannelList(
   // bootstrap whenever the session becomes authenticated again, which also
   // clears the stale error (runBootstrap resets it).
   const connectionState = useConnectionState();
-  const wasAuthenticated = useRef(false);
+  // Seeded with the state AT MOUNT: "recovered" means the session became
+  // authenticated AGAIN, not "was already authenticated when we mounted" —
+  // that case is the mount-bootstrap effect's job, and seeding with `false`
+  // made every already-authed mount fire bootstrap twice.
+  const wasAuthenticated = useRef(connectionState === 'authenticated');
   useEffect(() => {
     const authed = connectionState === 'authenticated';
     const recovered = authed && !wasAuthenticated.current;
