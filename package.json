@@ -1,9 +1,8 @@
 {
   "name": "@privchat/react",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.0",
   "description": "Headless React integration layer for @privchat/sdk — Provider, hooks, ViewModels. No visuals, no router, no multi-tab policy.",
   "type": "module",
-  "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -21,10 +20,11 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "peerDependencies": {
-    "@privchat/sdk": "*",
+    "@privchat/sdk": "^0.1.0-beta.0",
     "react": ">=18 <20"
   },
   "devDependencies": {
@@ -49,5 +49,10 @@
     "im",
     "instant-messaging",
     "headless"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "beta",
+    "registry": "https://registry.npmjs.org"
+  }
 }
