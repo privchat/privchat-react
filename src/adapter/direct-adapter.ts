@@ -10,7 +10,8 @@ import {
   buildSendFileInput,
   buildSendImageInput,
   buildSendVideoInput,
-  uploadSealedFileViaToken,
+  claimMissShouldReupload as sdkClaimMissShouldReupload,
+  uploadSealedAttachment,
 } from '@privchat/sdk';
 import type {
   UserDetailSource,
@@ -778,23 +779,16 @@ async function makeImageThumbnail(
   }
 }
 
-/** Two-step upload: request token → multipart POST. Pulled out of the
- *  per-content-type adapter methods so they only differ in the message
- *  envelope, not in the upload plumbing. */
-/** claim 失败是不是「服务端拿不到那份内容」这一种——只有它该退回整传。
- *
- *  服务端把「没有这份内容」和「有但你无权」说成同一句话（否则这个接口就是文件
- *  存在性探测器），两者都落在这里；退回整传对两者都对：真无权的人传自己的字节，
- *  本来就该被允许。 */
+/** claim 失败是不是「服务端拿不到那份内容」这一种——只有它该退回实体上传。
+ *  实现在 SDK（与 Rust SDK 同一判据）；这里保留导出给既有调用方/测试。 */
 export function claimMissShouldReupload(e: unknown): boolean {
-  // 🔴 码在 `response.code` 上，不是 `e.code`。读错位置的话这里恒为 false，
-  // 回退形同虚设——claim 一 miss，整条附件发送就失败了。
-  return e instanceof RpcError && e.response.code === RESOURCE_NOT_FOUND;
+  return sdkClaimMissShouldReupload(e);
 }
 
-/** `ServerError::NotFound` 的协议码。 */
-const RESOURCE_NOT_FOUND = 10201;
-
+/** 上传一份文件：封装一次 → 交给 SDK 编排（预检 / claim / 整包或分片）。
+ *
+ *  🔴 编排（大文件分片、claim 没成退回、会话丢失重申请）全部在 `@privchat/sdk`
+ *  的 `uploadSealedAttachment` 里，与 Rust SDK 同构；这里只负责封装与参数。 */
 async function uploadOneFile(
   client: PrivchatClient,
   file: Blob,
@@ -805,13 +799,9 @@ async function uploadOneFile(
   /** 这份内容**已经封装好的密文**（下载时服务端给的那串，已核对摘要）。
    *
    * 🔴 有它就不要再封装：加密用随机 CEK/nonce，重新封装必然产出另一串字节，
-   * 摘要一变预检就不可能命中——「再发一次同一份内容」于是每次都整传。
-   * 这不是转发专用参数，它就是这份内容当前的封装结果。 */
+   * 摘要一变预检就不可能命中。 */
   presealed?: { blob: Blob; cek: string; sha256: string },
 ) {
-  // 🔴 顺序：**先封装**（压缩/转码已在更上层完成），对**封装结果**求摘要，
-  // 再拿这个摘要去预检。加密用随机 CEK/nonce，预检之后重新加密字节就变了，
-  // 命中率恒为 0；重试也必须复用这同一个 blob。
   const sealed = presealed !== undefined
     ? {
         blob: new Uint8Array(await presealed.blob.arrayBuffer()),
@@ -819,50 +809,13 @@ async function uploadOneFile(
         sha256: presealed.sha256,
       }
     : await sealAttachment(new Uint8Array(await file.arrayBuffer()));
-  const token = await client.fileRequestUploadToken({
-    // 报的是**封装后**的字节数，与摘要同一口径。
-    file_size: sealed.blob.byteLength,
+  const { result } = await uploadSealedAttachment(client, {
+    sealed,
+    filename,
     mime_type,
     file_type,
     business_type: 'message',
-    filename,
-    sha256: sealed.sha256,
-  });
-
-  let uploadToken = token;
-  if (token.already_exists === true) {
-    // 服务端已经有这串字节：一个字节都不传，换一个属于自己的 file_id。
-    try {
-      return await client.fileClaimExisting({ token: token.token, sha256: sealed.sha256 });
-    } catch (e) {
-      // 🔴 秒传没成 → **照常上传**，不是发送失败。
-      //
-      // 预检说「有」、claim 却拿不到，是会正常发生的：那份内容的记录里没有一条
-      // 是这个人现在读得到的，或者候选在这中间失效了。服务端把它和「根本没有」
-      // 说成同一句话（否则接口会变成文件存在性探测器），客户端只能凭这个信号
-      // 退回整传。
-      //
-      // 只有这一种退回。参数错、真无权、瞬时竞争各有各的处理，一并当成「传一遍」
-      // 会把真问题盖掉，还白传一遍字节。
-      if (!claimMissShouldReupload(e)) throw e;
-      // 用**同一个已封装好的 blob** 重新要一张普通 token：重新封装会产出另一串
-      // 字节，白白让服务端多存一份。
-      uploadToken = await client.fileRequestUploadToken({
-        file_size: sealed.blob.byteLength,
-        mime_type,
-        file_type,
-        business_type: 'message',
-        filename,
-        // 不带摘要：这一次就是要传字节，不要再进秒传分支。
-      });
-    }
-  }
-
-  return uploadSealedFileViaToken({
-    sealed,
-    filename,
-    uploadUrl: uploadToken.upload_url,
-    token: uploadToken.token,
     onProgress,
   });
+  return result;
 }
