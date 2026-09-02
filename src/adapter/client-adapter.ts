@@ -471,8 +471,6 @@ export interface PrivchatClientAdapter {
     height: number;
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
-    /** 已封装的密文：再发一次同一份内容时跳过重新封装，否则秒传不可能命中。 */
-    sealed?: { blob: Blob; sha256: string };
   }): Promise<SendTextOperationResult>;
 
   /** End-to-end generic file upload + send. */
@@ -485,8 +483,6 @@ export interface PrivchatClientAdapter {
     local_message_id?: string;
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
-    /** 已封装的密文：再发一次同一份内容时跳过重新封装，否则秒传不可能命中。 */
-    sealed?: { blob: Blob; sha256: string };
   }): Promise<SendTextOperationResult>;
 
   /** End-to-end video upload + send. `width`/`height`/`duration` are
@@ -507,8 +503,6 @@ export interface PrivchatClientAdapter {
     thumbnail_url?: string;
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
-    /** 已封装的密文：再发一次同一份内容时跳过重新封装，否则秒传不可能命中。 */
-    sealed?: { blob: Blob; sha256: string };
   }): Promise<SendTextOperationResult>;
 
   // ----- Group role management -----
@@ -623,14 +617,12 @@ export interface PrivchatClientAdapter {
   /** 附件加密 v1 下载：`file_id -> file/get_url -> signed_url + cek` → fetch 密文 →
    *  WebCrypto 解密 → 明文 `Blob`。UI 用 `URL.createObjectURL(blob)` 预览/下载，
    *  不能 `img.src = file_url`（v1 是密文）。CEK 不进 URL/日志。 */
-  /** 下载一份附件，连同**服务端存的密文**和它的权威元数据一起拿回来。
+  /** 下载一份附件，连同它的权威元数据一起拿回来。
    *
-   * 🔴 `sealed` 与「转发」无关：它是这份内容当前的封装结果。把它交给普通发送
-   * （`sendImage/sendVideo/sendFile` 的 `sealed` 参数）就能秒传；只取明文会导致
-   * 发送侧重新封装，摘要一变秒传恒不命中。 */
+   * 🔴 只给明文。再发一次同一份内容时把明文交给普通发送即可——判重键就是明文
+   * 摘要，秒传照常命中。 */
   downloadAttachmentDetailed(fileId: string): Promise<{
     blob: Blob;
-    sealed?: { blob: Blob; sha256: string };
     originalFilename?: string;
     mimeType?: string;
     fileType?: 'image' | 'video' | 'voice' | 'file' | 'other';

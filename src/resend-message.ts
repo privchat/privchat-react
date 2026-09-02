@@ -58,7 +58,6 @@ export async function resendMessageTo(
     filename,
     mime_type: mime,
     caption: body.text === '' ? undefined : body.text,
-    sealed: downloaded.sealed,
   };
 
   if (kind === 'image') {
