@@ -472,7 +472,7 @@ export interface PrivchatClientAdapter {
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
     /** 已封装的密文：再发一次同一份内容时跳过重新封装，否则秒传不可能命中。 */
-    sealed?: { blob: Blob; cek: string; sha256: string };
+    sealed?: { blob: Blob; sha256: string };
   }): Promise<SendTextOperationResult>;
 
   /** End-to-end generic file upload + send. */
@@ -486,7 +486,7 @@ export interface PrivchatClientAdapter {
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
     /** 已封装的密文：再发一次同一份内容时跳过重新封装，否则秒传不可能命中。 */
-    sealed?: { blob: Blob; cek: string; sha256: string };
+    sealed?: { blob: Blob; sha256: string };
   }): Promise<SendTextOperationResult>;
 
   /** End-to-end video upload + send. `width`/`height`/`duration` are
@@ -508,7 +508,7 @@ export interface PrivchatClientAdapter {
     caption?: string;
     onProgress?: (event: import('@privchat/sdk').UploadProgressEvent) => void;
     /** 已封装的密文：再发一次同一份内容时跳过重新封装，否则秒传不可能命中。 */
-    sealed?: { blob: Blob; cek: string; sha256: string };
+    sealed?: { blob: Blob; sha256: string };
   }): Promise<SendTextOperationResult>;
 
   // ----- Group role management -----
@@ -630,7 +630,7 @@ export interface PrivchatClientAdapter {
    * 发送侧重新封装，摘要一变秒传恒不命中。 */
   downloadAttachmentDetailed(fileId: string): Promise<{
     blob: Blob;
-    sealed?: { blob: Blob; cek: string; sha256: string };
+    sealed?: { blob: Blob; sha256: string };
     originalFilename?: string;
     mimeType?: string;
     fileType?: 'image' | 'video' | 'voice' | 'file' | 'other';
