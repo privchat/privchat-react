@@ -502,7 +502,8 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     // 与 Rust SDK 发送侧对齐：缩略图是独立 file（320px），接收端(App/Rust)气泡
     // 只渲染缩略图，缺失会落成 thumb_status=3 的静态占位。生成/上传失败不阻断
     // 发送——退回无缩略图消息（接收端有原图兜底）。
-    let thumb: { file_id: string; url?: string } | undefined;
+    // 只留 file_id：地址在下载时才取。
+    let thumb: { file_id: string } | undefined;
     try {
       const thumbBlob = await makeImageThumbnail(args.file, 320);
       if (thumbBlob !== undefined) {
@@ -513,7 +514,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
           thumbBlob.mime,
           'image',
         );
-        thumb = { file_id: String(uploaded.file_id), url: uploaded.file_url };
+        thumb = { file_id: String(uploaded.file_id) };
       }
     } catch {
       thumb = undefined;
@@ -522,7 +523,7 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     // 失败或不值得独立缩略图(压不小)时,把原图引用为缩略图——接收端自动下载
     // 原图当缩略图,代价可接受,绝不发出无缩略图的图片消息。
     if (thumb === undefined) {
-      thumb = { file_id: String(result.file_id), url: result.file_url };
+      thumb = { file_id: String(result.file_id) };
     }
     return this.client.sendTextMessage(
       buildSendImageInput({
@@ -531,13 +532,14 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
         from_uid: fromUid,
         caption: args.caption,
         local_message_id: args.local_message_id,
+        // 🔴 消息里只放稳定引用，不放下载地址。地址会过期（签名 URL 有 TTL、桶会
+        // 迁移、将来还要加防盗链 token），而消息是持久的——离线留言和历史记录被读到
+        // 时，当初写进去的地址早已失效。接收端拿 file_id 在下载那一刻走 file/get_url。
         metadata: {
           file_id: String(result.file_id),
-          url: result.file_url,
           width: result.width ?? args.width,
           height: result.height ?? args.height,
           thumbnail_file_id: thumb?.file_id,
-          thumbnail_url: thumb?.url,
         },
       }),
     );
@@ -572,7 +574,6 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
         local_message_id: args.local_message_id,
         metadata: {
           file_id: String(result.file_id),
-          url: result.file_url,
           filename: args.filename,
           mime_type: args.mime_type,
           size: result.file_size,
@@ -617,7 +618,6 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
         local_message_id: args.local_message_id,
         metadata: {
           file_id: String(result.file_id),
-          url: result.file_url,
           // Prefer the server-probed dimensions when available; the
           // caller's args are best-effort hints derived from the
           // `<video>` metadata event, which can lag a slow load.
