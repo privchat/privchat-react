@@ -1,6 +1,6 @@
 {
   "name": "@privchat/react",
-  "version": "0.1.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "Headless React integration layer for @privchat/sdk — Provider, hooks, ViewModels. No visuals, no router, no multi-tab policy.",
   "type": "module",
   "main": "./dist/index.js",
@@ -24,7 +24,7 @@
     "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "peerDependencies": {
-    "@privchat/sdk": "^0.1.0-beta.0",
+    "@privchat/sdk": "^1.0.0-beta.1",
     "react": ">=18 <20"
   },
   "devDependencies": {
