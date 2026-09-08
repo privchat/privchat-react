@@ -163,6 +163,9 @@ export function createMockAdapter(
     bootstrapChannels: REJECT_NOT_MOCKED('bootstrapChannels') as (
       o?: BootstrapChannelsOptions,
     ) => Promise<ChannelRecord[]>,
+    isConversationDisplayable(): boolean {
+      return true;
+    },
     cachedChannels(): ChannelRecord[] {
       return [];
     },

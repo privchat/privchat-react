@@ -53,11 +53,23 @@ export function useChannelList(
   const cacheRef = useRef<ChannelRecord[] | null>(null);
 
   const subscribe = useCallback(
-    (onChange: () => void) =>
-      adapter.observeChannelList(() => {
+    (onChange: () => void) => {
+      const offChannels = adapter.observeChannelList(() => {
         cacheRef.current = null;
         onChange();
-      }),
+      });
+      // 🔴 users 也要订阅：发布屏障按「标题算不算得出来」过滤，而标题来自 users
+      // store。只订阅 channel 的话，被挡住的会话在对端资料补齐后**永远不会出现**
+      // ——列表根本不会重算。这一条是屏障能自愈的前提。
+      const offUsers = adapter.observeUserList(() => {
+        cacheRef.current = null;
+        onChange();
+      });
+      return () => {
+        offChannels();
+        offUsers();
+      };
+    },
     [adapter],
   );
 
@@ -156,12 +168,24 @@ export function useChannelList(
     // 判据是 `updated_at`（服务端 `last_msg_timestamp`，没有消息时为 0），不是「本地
     // 有没有缓存到消息」——历史还没拉下来的会话必须留在列表里。
     // 群不适用：刚被拉进的群还没人说话，藏掉就等于没有入口。
-    const listable = records.filter((r) => r.channel_type !== 1 || r.updated_at > 0);
+    // 两道过滤，都只作用在**列表投影**这一层：
+    //   1. 零消息 DM 不进列表（上面那段注释）；
+    //   2. 发布屏障——标题还算不出来的 DM 先不出现，等 SDK 定向补齐到位后
+    //      带着完整标题/头像/预览一次性出现，而不是先渲染一个「用户 #123」
+    //      再跳成真名。判据由 SDK 给（`isConversationDisplayable`），两端同构。
+    //      注意屏障只挡「从未就绪过」的行：曾经展示过的会话，旧快照仍在 users
+    //      store 里，名字照样算得出来，刷新失败也不会消失。
+    const listable = records.filter(
+      (r) => (r.channel_type !== 1 || r.updated_at > 0) && adapter.isConversationDisplayable(r),
+    );
     const projected = listable.map(projectChannelRecord);
     const sortedProjections = sortConversations(projected);
     const recordById = new Map(listable.map((r) => [`${r.channel_id}:${r.channel_type}`, r]));
     return sortedProjections.map((vm) => recordById.get(vm.id)!).filter((r) => r !== undefined);
-  }, [records]);
+    // adapter 进依赖：`isConversationDisplayable` 读的是 users store，
+    // 对端资料补齐后这里必须重算，否则会话补好了也不出现。
+    // users 变化经 observeUserList → records 刷新驱动（见下方订阅）。
+  }, [records, adapter]);
 
   const conversations = useMemo(
     () => sortedRecords.map(projectChannelRecord),

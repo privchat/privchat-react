@@ -204,6 +204,12 @@ export interface PrivchatClientAdapter {
   cachedChannels(): ChannelRecord[];
 
   /**
+   * 这条会话现在能否**完整展示**（发布屏障）。判据由 SDK 给，UI 只负责照做——
+   * 判据散到界面里，两端就会各写一份、迟早分叉。
+   */
+  isConversationDisplayable(channel: ChannelRecord): boolean;
+
+  /**
    * Subscribe to channel-list mutations. Callback receives the FULL snapshot
    * (not a delta). Fires on bootstrap completion, on inbound push absorption
    * (last_message / unread bumps), and on read-cursor advances.

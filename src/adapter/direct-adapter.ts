@@ -137,6 +137,10 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     return this.client.cachedChannels();
   }
 
+  isConversationDisplayable(channel: ChannelRecord): boolean {
+    return this.client.isConversationDisplayable(channel);
+  }
+
   observeChannelList(cb: (channels: ChannelRecord[]) => void): Unsubscribe {
     return this.client.observeChannelList(cb);
   }

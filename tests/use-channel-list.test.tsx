@@ -81,6 +81,20 @@ class MockAdapter implements PrivchatClientAdapter {
     // simulate server replying with whatever has been pre-seeded
     return this.channels;
   }
+  /** 测试可控的发布屏障：默认全部可展示。 */
+  displayable: (c: ChannelRecord) => boolean = () => true;
+  private userListeners = new Set<() => void>();
+
+  isConversationDisplayable(channel: ChannelRecord): boolean {
+    return this.displayable(channel);
+  }
+
+  /** 模拟「对端资料补齐」：改判据 + 通知 users 变化。 */
+  resolvePeers(predicate: (c: ChannelRecord) => boolean): void {
+    this.displayable = predicate;
+    for (const cb of this.userListeners) cb();
+  }
+
   cachedChannels(): ChannelRecord[] {
     return [...this.channels];
   }
@@ -124,8 +138,14 @@ class MockAdapter implements PrivchatClientAdapter {
   cachedUsers(): never[] {
     return [];
   }
-  observeUserList(_cb: (users: never[]) => void): Unsubscribe {
-    return () => {};
+  observeUserList(cb: (users: never[]) => void): Unsubscribe {
+    const wrapped = (): void => {
+      cb([]);
+    };
+    this.userListeners.add(wrapped);
+    return () => {
+      this.userListeners.delete(wrapped);
+    };
   }
   cachedGroup(): undefined {
     return undefined;
@@ -463,6 +483,49 @@ describe('useChannelList (R1.1)', () => {
     });
     expect(result.current.conversations).toHaveLength(1);
     expect(result.current.conversations[0]?.channel_id).toBe('5');
+  });
+
+  /// 发布屏障：标题还算不出来的 DM 先不出现（不渲染「用户 #123」再跳成真名），
+  /// 对端资料补齐后**自动**出现 —— 这要求列表同时订阅 users 变化，
+  /// 只订阅 channel 的话被挡住的会话永远不会重算。
+  it('holds back an unresolved DM and reveals it once the peer resolves', () => {
+    const adapter = new MockAdapter();
+    adapter.displayable = (c) => c.channel_id !== '9';
+    const { result } = renderHook(() => useChannelList({ skipAutoBootstrap: true }), {
+      wrapper: wrapper(adapter),
+    });
+
+    act(() => {
+      adapter.emit([
+        makeChannel({ channel_id: '9', updated_at: 9 }),
+        makeChannel({ channel_id: '8', updated_at: 8 }),
+      ]);
+    });
+    expect(result.current.conversations.map((c) => c.channel_id)).toEqual(['8']);
+
+    act(() => {
+      adapter.resolvePeers(() => true);
+    });
+    expect(result.current.conversations.map((c) => c.channel_id)).toEqual(['9', '8']);
+  });
+
+  /// 屏障只挡「从未就绪过」的行。已经展示出来的会话，即使随后一次资料刷新失败，
+  /// 也必须留在列表里 —— 消失会让用户以为消息丢了。
+  it('keeps a conversation visible after it has been shown once', () => {
+    const adapter = new MockAdapter();
+    const { result } = renderHook(() => useChannelList({ skipAutoBootstrap: true }), {
+      wrapper: wrapper(adapter),
+    });
+    act(() => {
+      adapter.emit([makeChannel({ channel_id: '7', updated_at: 7 })]);
+    });
+    expect(result.current.conversations).toHaveLength(1);
+
+    // 刷新失败不会把本地已有的 user 快照清掉，判据因此仍然成立。
+    act(() => {
+      adapter.resolvePeers(() => true);
+    });
+    expect(result.current.conversations.map((c) => c.channel_id)).toEqual(['7']);
   });
 
   it('refresh() forces a sinceChannelVersion=0 / sinceCursorVersion=0 fetch', async () => {

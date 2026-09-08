@@ -122,6 +122,10 @@ class MockAdapter implements PrivchatClientAdapter {
   async bootstrapChannels(_opts?: BootstrapChannelsOptions): Promise<ChannelRecord[]> {
     return [];
   }
+  isConversationDisplayable(): boolean {
+    return true;
+  }
+
   cachedChannels(): ChannelRecord[] {
     return [];
   }
