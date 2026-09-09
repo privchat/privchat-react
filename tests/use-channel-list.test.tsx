@@ -365,6 +365,10 @@ class MockAdapter implements PrivchatClientAdapter {
   syncGroupMembers(): Promise<number> {
     return Promise.reject(new Error('not stubbed'));
   }
+  refreshUserProfile(): ReturnType<PrivchatClientAdapter['refreshUserProfile']> {
+    throw new Error('not stubbed');
+  }
+
   userDetail(): ReturnType<PrivchatClientAdapter['userDetail']> {
     return Promise.reject(new Error('not stubbed'));
   }

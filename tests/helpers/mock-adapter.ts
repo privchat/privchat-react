@@ -74,6 +74,7 @@ export function createMockAdapter(
     privacyUpdate: () => Promise.reject(new Error('not stubbed')),
     syncGroupMembers: () => Promise.reject(new Error('not stubbed')),
     userDetail: () => Promise.reject(new Error('not stubbed')),
+    refreshUserProfile: () => Promise.reject(new Error('not stubbed')),
     // ---- R0 connection / events ----
     connectionState(): ConnectionState {
       return 'authenticated';

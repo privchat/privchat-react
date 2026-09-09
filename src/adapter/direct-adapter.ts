@@ -229,6 +229,14 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     return this.client.userDetail(req);
   }
 
+  refreshUserProfile(req: {
+    target_user_id: number;
+    source: UserDetailSource;
+    source_id: string;
+  }) {
+    return this.client.refreshUserProfile(req);
+  }
+
   friendAccept(
     fromUserId: number,
     message?: string,

@@ -307,6 +307,21 @@ export interface PrivchatClientAdapter {
     grant_id?: string;
   }>;
 
+  /**
+   * Force a remote profile fetch and store the result, returning the stored row.
+   *
+   * AVATAR_CACHE_SPEC §2: opening a profile calibrates against the server, so a
+   * renamed contact or a changed avatar shows up without waiting for the next
+   * entity sync. `userDetail` only hands the response to the caller — the
+   * conversation title and the contact row read the cached user row, so a fetch
+   * that does not persist updates one screen and reverts on the next render.
+   */
+  refreshUserProfile(req: {
+    target_user_id: number;
+    source: UserDetailSource;
+    source_id: string;
+  }): Promise<UserRecord>;
+
   /** Accept an incoming friend request. */
   friendAccept(
     fromUserId: number,
