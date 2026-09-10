@@ -171,8 +171,9 @@ export interface PrivchatClientAdapter {
   /**
    * Mark messages up to `read_pts` as read for the current user. Server
    * advances the canonical `channel_read_cursor` row, zeros local unread,
-   * and (for direct channels) broadcasts `peer_read_pts_updated` to the
-   * other party. Idempotent — calling with a `read_pts` ≤ existing cursor
+   * and notifies the other side: `peer_read_pts_updated` to the peer in a
+   * direct channel, an anonymous `group_read_aggregate_updated` to the authors
+   * of the messages just read in a group. Idempotent — calling with a `read_pts` ≤ existing cursor
    * is a server-side no-op.
    *
    * Returns the raw RPC result; SDK has already projected `accepted_read_pts`

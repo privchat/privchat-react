@@ -43,9 +43,10 @@ export interface UseConversationResult {
   /** Most recent error from openConversation/scrollHistory/send, or null. */
   error: Error | null;
   /**
-   * The peer's read cursor on this channel, projected from
-   * `ChannelRecord.peer_read_pts`. `undefined` for groups / cold-start
-   * before any peer activity. Exposed so panel UIs can show diagnostic
+   * The other side's read cursor on this channel, projected from
+   * `ChannelRecord.peer_read_pts` — the peer's cursor in a direct channel,
+   * the aggregate over everyone else in a group. `undefined` at cold start
+   * before anyone has read. Exposed so panel UIs can show diagnostic
    * "peer at pts=N" overlays during dogfood.
    */
   peerReadPts: string | undefined;

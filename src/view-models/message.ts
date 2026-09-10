@@ -42,10 +42,13 @@ export interface MessageItemVM {
   is_self: boolean;
   /**
    * Read-receipt projection: `true` when this is a self-sent row whose
-   * pts the direct-channel peer has already read past
-   * (`pts <= channel.peer_read_pts`). Always `false` for inbound rows
-   * and for outbound rows the peer hasn't read yet (or in channels
-   * where peer cursor isn't tracked, e.g. groups).
+   * pts someone else has already read past (`pts <= channel.peer_read_pts`).
+   * Always `false` for inbound rows and for outbound rows nobody has read yet.
+   *
+   * Groups are included. Their cursor is an **aggregate** — the furthest
+   * anyone else has read — so "read" there means "at least one other member
+   * read it", which is the semantics the spec picked (READ_STATUS_SPEC §6.5.1).
+   * How many, and who, is a separate on-demand query; this flag stays binary.
    *
    * This deliberately does NOT live on `MessageStatus` — it's a
    * separate dimension from the send-state machine, mirroring Rust
@@ -170,11 +173,11 @@ export type MediaMetadataVM =
  * yet; in that case `is_self` defaults to `false` so unauthenticated views
  * render messages as "from someone else" rather than crashing.
  *
- * `peerReadPts` is the direct-channel peer's read cursor (from
- * `ChannelRecord.peer_read_pts`). Pass `undefined` when the channel has
- * no known peer cursor yet (cold start before any peer markRead), or for
- * group channels — the projection cleanly degrades to
- * `read_by_peer: false`.
+ * `peerReadPts` is the other side's read cursor (from
+ * `ChannelRecord.peer_read_pts`): the peer's own cursor in a direct channel,
+ * the aggregate over everyone else in a group. Pass `undefined` when the
+ * channel has no cursor yet (cold start before anyone has read) — the
+ * projection cleanly degrades to `read_by_peer: false`.
  */
 export function projectMessageRecord(
   record: MessageRecord,
