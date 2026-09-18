@@ -17,6 +17,7 @@ import type {
   GroupRecord,
   UserRecord,
 } from '@privchat/sdk';
+import { CHANNEL_TYPE_DIRECT, CHANNEL_TYPE_GROUP } from './channel-type.js';
 
 export type ConversationTitleKind = 'system' | 'direct' | 'group' | 'unknown';
 
@@ -145,7 +146,7 @@ export function resolveConversationTitle(input: ResolveTitleInput): Conversation
   const i18n = { ...DEFAULT_TITLE_I18N, ...input.i18n };
 
   // Group channel
-  if (channel.channel_type === 2) {
+  if (channel.channel_type === CHANNEL_TYPE_GROUP) {
     const resolvedGroup = group;
     if (resolvedGroup !== undefined && resolvedGroup.name !== '') {
       return {
@@ -172,7 +173,7 @@ export function resolveConversationTitle(input: ResolveTitleInput): Conversation
   }
 
   // Direct channel
-  if (channel.channel_type === 1) {
+  if (channel.channel_type === CHANNEL_TYPE_DIRECT) {
     const peerUid = input.peerUid ?? peerUidOf(channel, selfUid);
     void peerUid; // peerUid 不再参与系统判定（P4.2 拍板禁 uid），仍供后续 presence/头像使用。
 

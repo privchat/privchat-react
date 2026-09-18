@@ -1,19 +1,23 @@
 // Conversation-channel type constants.
 //
-// Mirrors the SDK / messages-table convention (1 = direct, 2 = group).
-// Exposed at the React layer so consumers (web app, embed widgets,
-// future Cocos host) don't end up sprinkling magic numbers like
-// `channel_type === 2` across UI code. The SDK itself uses these
-// values on the wire — see `channelDirectGetOrCreate`'s response and
-// `ChannelRecord.channel_type`.
+// The wire numbering (1 = direct, 2 = group, 3 = room) is owned by
+// privchat-protocol's `protocol::ChannelType` and re-exported by the SDK as
+// `ChannelType`; these aliases keep the React layer free of magic numbers
+// like `channel_type === 2` while pointing at that single source of truth.
+import { ChannelType } from '@privchat/sdk';
+
+export { ChannelType };
 
 /** 1-on-1 direct chat between two users. */
-export const CHANNEL_TYPE_DIRECT = 1;
+export const CHANNEL_TYPE_DIRECT: number = ChannelType.Direct;
 
 /** Multi-member group chat. For groups, the server-side invariant
  *  `channel_id == group_id` holds, so a `GroupRecord.group_id` can be
  *  passed straight into `openConversation(group_id, CHANNEL_TYPE_GROUP)`. */
-export const CHANNEL_TYPE_GROUP = 2;
+export const CHANNEL_TYPE_GROUP: number = ChannelType.Group;
+
+/** Room broadcast channel (ticket-authorised subscription, no pts/unread). */
+export const CHANNEL_TYPE_ROOM: number = ChannelType.Room;
 
 /**
  * Unified shape for "I have an active conversation pinned in the UI".

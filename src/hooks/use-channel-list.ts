@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { BootstrapChannelsOptions, ChannelRecord } from '@privchat/sdk';
+import { CHANNEL_TYPE_DIRECT } from '../view-models/channel-type.js';
 import { usePrivchatClient } from './use-privchat-client.js';
 import { useConnectionState } from './use-connection-state.js';
 import {
@@ -176,7 +177,7 @@ export function useChannelList(
     //      注意屏障只挡「从未就绪过」的行：曾经展示过的会话，旧快照仍在 users
     //      store 里，名字照样算得出来，刷新失败也不会消失。
     const listable = records.filter(
-      (r) => (r.channel_type !== 1 || r.updated_at > 0) && adapter.isConversationDisplayable(r),
+      (r) => (r.channel_type !== CHANNEL_TYPE_DIRECT || r.updated_at > 0) && adapter.isConversationDisplayable(r),
     );
     const projected = listable.map(projectChannelRecord);
     const sortedProjections = sortConversations(projected);
