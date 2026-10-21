@@ -405,6 +405,10 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
     );
   }
 
+  updateGroupProfile(groupId: string, profile: import('@privchat/sdk').GroupProfilePatch): Promise<import('@privchat/sdk').GroupUpdateResponse> {
+    return this.client.groupUpdate(groupId, profile);
+  }
+
   getGroupSettings(
     groupId: string,
   ): Promise<import('@privchat/sdk').GroupSettingsGetResponse> {

@@ -142,6 +142,12 @@ export interface LocationMetadataVM {
   type: 'location';
   latitude: number;
   longitude: number;
+  coordinate_system?: string;
+  name?: string;
+  address?: string;
+  poi_id?: string;
+  poi_source?: string;
+  thumbnail_file_id?: string;
 }
 
 export interface LinkMetadataVM {
@@ -447,6 +453,12 @@ function decodeMediaMetadata(
         type: 'location',
         latitude: m.latitude,
         longitude: m.longitude,
+        coordinate_system: typeof m.coordinate_system === 'string' ? m.coordinate_system : undefined,
+        name: typeof m.name === 'string' ? m.name : undefined,
+        address: typeof m.address === 'string' ? m.address : undefined,
+        poi_id: typeof m.poi_id === 'string' ? m.poi_id : undefined,
+        poi_source: typeof m.poi_source === 'string' ? m.poi_source : undefined,
+        thumbnail_file_id: typeof m.thumbnail_file_id === 'string' ? m.thumbnail_file_id : undefined,
       };
     case 'link': {
       const url = m.url;

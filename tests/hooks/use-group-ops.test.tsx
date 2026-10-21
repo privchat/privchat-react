@@ -381,3 +381,13 @@ describe('useGroupOps', () => {
     expect(resp.total).toBe(749); // 750 减掉本页过滤掉的 1 个系统账号
   });
 });
+
+it('profile editing uses its own route and preserves an explicit clear', async () => {
+  const update = vi.fn().mockResolvedValue({ group_id: 900, name: 'group', description: '', updated_at: 1, sync_version: 2 });
+  const settings = vi.fn();
+  const adapter = createMockAdapter({ updateGroupProfile: update, updateGroupSettings: settings });
+  const { result } = renderHookWithAdapter(() => useGroupOps(), adapter);
+  await act(async () => { await result.current.updateProfile('900', { description: '' }); });
+  expect(update).toHaveBeenCalledWith('900', { description: '' });
+  expect(settings).not.toHaveBeenCalled();
+});

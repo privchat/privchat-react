@@ -71,6 +71,7 @@ export interface GroupOps {
   /** Apply a partial settings patch. Owner-only per spec — server
    *  rejects admin / member callers. Pass `''` to clear a string
    *  field; omit fields to leave them unchanged. */
+  updateProfile: (groupId: string, profile: import('@privchat/sdk').GroupProfilePatch) => Promise<import('@privchat/sdk').GroupUpdateResponse>;
   updateSettings: (
     groupId: string,
     settings: GroupSettingsPatch,
@@ -167,6 +168,9 @@ export function useGroupOps(): GroupOps {
     (groupId: string) => adapter.getGroupSettings(groupId),
     [adapter],
   );
+  const updateProfile = useCallback(
+    (groupId: string, profile: import('@privchat/sdk').GroupProfilePatch) => adapter.updateGroupProfile(groupId, profile), [adapter],
+  );
   const updateSettings = useCallback(
     (groupId: string, settings: GroupSettingsPatch) =>
       adapter.updateGroupSettings(groupId, settings),
@@ -200,6 +204,7 @@ export function useGroupOps(): GroupOps {
       transferOwner,
       getSettings,
       updateSettings,
+      updateProfile,
       muteAll,
       pinMessage,
       pinnedMessages,
@@ -218,6 +223,7 @@ export function useGroupOps(): GroupOps {
       transferOwner,
       getSettings,
       updateSettings,
+      updateProfile,
       muteAll,
       pinMessage,
       pinnedMessages,

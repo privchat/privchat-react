@@ -197,3 +197,5 @@ export {
 } from './view-models/group-list.js';
 
 export { resendMessageTo } from './resend-message.js';
+
+export { useGroupProjectionRefresh } from './hooks/use-group-projection-refresh.js';

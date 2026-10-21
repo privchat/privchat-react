@@ -271,6 +271,7 @@ class MockAdapter implements PrivchatClientAdapter {
       },
     };
   }
+  async updateGroupProfile(): Promise<never> { throw new Error('updateGroupProfile not mocked'); }
   async updateGroupSettings() {
     return { success: true, group_id: '0', message: 'ok', updated_count: 0, updated_at: 0 };
   }

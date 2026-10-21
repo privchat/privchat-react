@@ -555,6 +555,8 @@ export interface PrivchatClientAdapter {
   /** Read the mutable group settings (description / announcement /
    *  approval flags / mute-all / member limit). Server gates on
    *  membership; non-members get an error. */
+  updateGroupProfile(groupId: string, profile: import('@privchat/sdk').GroupProfilePatch): Promise<import('@privchat/sdk').GroupUpdateResponse>;
+
   getGroupSettings(
     groupId: string,
   ): Promise<import('@privchat/sdk').GroupSettingsGetResponse>;
