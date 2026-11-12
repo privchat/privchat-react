@@ -12,6 +12,7 @@
 import { useCallback } from 'react';
 import type {
   AccountSearchResponse,
+  BlacklistListResponse,
   FriendAcceptResponse,
   FriendApplyResponse,
   FriendPendingResponse,
@@ -128,4 +129,19 @@ export function useUnblockUser(): (
     },
     [adapter],
   );
+}
+
+/** List the caller's blacklist (BLACKLIST_SPEC §4.3). Imperative like
+ *  `useFriendPending` — the management dialog calls it on open and after
+ *  each unblock, rather than subscribing on mount. Pulls the caller uid
+ *  from the session because the blacklist routes don't auto-fill it. */
+export function useBlacklistList(): () => Promise<BlacklistListResponse> {
+  const adapter = usePrivchatClient();
+  return useCallback(() => {
+    const me = adapter.sessionSnapshot().user_id;
+    if (me === undefined) {
+      return Promise.reject(new Error('not authenticated'));
+    }
+    return adapter.blacklistList(Number(me));
+  }, [adapter]);
 }

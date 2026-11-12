@@ -17,6 +17,7 @@
 import type {
   UserDetailSource,
   AccountSearchResponse,
+  BlacklistListResponse,
   BootstrapChannelsOptions,
   ChannelRecord,
   ConnectionState,
@@ -352,6 +353,13 @@ export interface PrivchatClientAdapter {
 
   /** Remove a uid from the caller's blacklist. */
   unblockUser(callerUserId: number, blockedUserId: number): Promise<unknown>;
+
+  /** List the caller's blacklist entries (BLACKLIST_SPEC §4.3). Caller
+   *  passes its own user_id — the blacklist routes don't auto-fill from
+   *  auth ctx (same server contract as add/remove). The response carries
+   *  ids + blocked_at + reason only; display names resolve from the local
+   *  user cache on the UI side. */
+  blacklistList(callerUserId: number): Promise<BlacklistListResponse>;
 
   // ----- Group management commands (R2.3) -----
 

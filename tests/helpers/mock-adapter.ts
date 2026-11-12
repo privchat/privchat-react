@@ -12,6 +12,7 @@
 
 import type {
   AccountSearchResponse,
+  BlacklistListResponse,
   BootstrapChannelsOptions,
   ChannelRecord,
   ConnectionState,
@@ -244,6 +245,9 @@ export function createMockAdapter(
       caller: number,
       blocked: number,
     ) => Promise<unknown>,
+    blacklistList: REJECT_NOT_MOCKED('blacklistList') as (
+      caller: number,
+    ) => Promise<BlacklistListResponse>,
     groupCreate: REJECT_NOT_MOCKED('groupCreate') as (
       name: string,
       desc?: string,

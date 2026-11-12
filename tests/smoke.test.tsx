@@ -188,6 +188,9 @@ class MockAdapter implements PrivchatClientAdapter {
   async unblockUser() {
     return true;
   }
+  async blacklistList() {
+    return { success: true, users: [] };
+  }
   async subscribeChannel() {
     return undefined;
   }

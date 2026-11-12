@@ -78,6 +78,7 @@ export { useOpenDirectConversation } from './hooks/use-open-direct-conversation.
 export { useMessageSearch, useJumpToMessage } from './hooks/use-message-search.js';
 export {
   useAccountSearch,
+  useBlacklistList,
   useBlockUser,
   useFriendAccept,
   useFriendApply,

@@ -16,6 +16,7 @@ import {
 import type {
   UserDetailSource,
   AccountSearchResponse,
+  BlacklistListResponse,
   BootstrapChannelsOptions,
   PresenceBatchStatusResponse,
   ChannelRecord,
@@ -262,6 +263,10 @@ export class DirectClientAdapter implements PrivchatClientAdapter {
 
   unblockUser(callerUserId: number, blockedUserId: number): Promise<unknown> {
     return this.client.blacklistRemove(callerUserId, blockedUserId);
+  }
+
+  blacklistList(callerUserId: number): Promise<BlacklistListResponse> {
+    return this.client.blacklistList(callerUserId);
   }
 
   groupCreate(name: string, description?: string): Promise<GroupCreateResponse> {
